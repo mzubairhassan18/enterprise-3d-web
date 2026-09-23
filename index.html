@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Walk the Society — Blender → three.js</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div id="hud">
+  <span id="hud-frame">frame 1</span>
+  <span id="hud-phase">at the gate</span>
+</div>
+
+<div id="loader">loading scene.glb…</div>
+
+<main>
+  <section class="panel" data-f0="1" data-f1="60">
+    <div class="card">
+      <p class="eyebrow">Blender → glTF → three.js</p>
+      <h1>Walk into the society.</h1>
+      <p>You are standing on the road, outside the main gate. Scroll to move —
+         the camera walks at eye height, turns to look left and right, then
+         follows the road to the roundabout and the mosque.</p>
+      <p class="hint">scroll down ▼ &nbsp;·&nbsp; scroll up to walk it backwards</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="60" data-f1="150">
+    <div class="card">
+      <p class="eyebrow">01 · frames 60–150</p>
+      <h2>The gate, then the road</h2>
+      <p>The two leaves swing open as you reach them, and the asphalt draws
+         itself west to east just ahead of your feet — centre line and both
+         sidewalks included. Look right: a house is already rising across
+         the street.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="150" data-f1="390">
+    <div class="card">
+      <p class="eyebrow">02 · frames 150–390</p>
+      <h2>Look left — the first house</h2>
+      <p>Walls fly in from six units out, the roof drops from ten units up and
+         lands with an overshoot, the door swings on a hinge empty. Then thirty-three
+         fence pops up picket by picket and two pines grow out of the yard.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="390" data-f1="560">
+    <div class="card">
+      <p class="eyebrow">03 · frames 390–560</p>
+      <h2>The second house</h2>
+      <p>Keep walking and glance left again — the same build, one block further
+         east. Each clone carries its own copy of the action, shifted down the
+         timeline so the two houses never assemble at once.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="560" data-f1="700">
+    <div class="card">
+      <p class="eyebrow">04 · frames 560–700</p>
+      <h2>Back on the road</h2>
+      <p>Eyes forward again. Pedestrians share both sidewalks — jeans, shirts,
+         hair, eyes — and they walk on their own clock: each paces its own
+         stretch of pavement and turns around at the ends, whatever you do
+         with the scrollbar.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="700" data-f1="860">
+    <div class="card">
+      <p class="eyebrow">05 · frames 700–860</p>
+      <h2>The roundabout</h2>
+      <p>The island grows out of the ground first — asphalt ring, kerb, grass —
+         then the fountain's stone basin, pedestal and bowl stack themselves on
+         top of it.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="860" data-f1="960">
+    <div class="card">
+      <p class="eyebrow">06 · frames 860–960</p>
+      <h2>The waterfall</h2>
+      <p>Water fills the basin, a column rises through the bowl and spills over
+         the rim as a falling curtain. Three staggered roots, three scale keys
+         each — the whole fountain is scroll-driven.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="960" data-f1="1040">
+    <div class="card">
+      <p class="eyebrow">07 · frames 960–1040</p>
+      <h2>The mosque</h2>
+      <p>Past the water the hall lifts out of the ground with its dome, glowing
+         windows and door; a moment later the minaret extends itself off the
+         roof, balcony, gold cap and spire.</p>
+    </div>
+  </section>
+
+  <section class="panel" data-f0="1040" data-f1="1150">
+    <div class="card">
+      <p class="eyebrow">08 · frames 1040–1150</p>
+      <h2>The whole society</h2>
+      <p>The camera cranes up and back until the entire plan is under it —
+         gate, road, three houses, roundabout, mosque. Scroll up and the whole
+         walk runs backwards, in real time.</p>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
