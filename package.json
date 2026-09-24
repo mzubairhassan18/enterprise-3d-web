@@ -1,0 +1,6 @@
+{
+  "name": "walk-the-society",
+  "private": true,
+  "type": "module",
+  "description": "Static three.js site: index.html + main.js + scene.glb (no build step). 'type: module' lets 'node --check main.js' parse the ES-module syntax."
+}

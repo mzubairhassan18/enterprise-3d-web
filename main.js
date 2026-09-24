@@ -13,9 +13,9 @@ const F0 = 1, F1 = 1150;                 // Blender timeline (24 fps)
  * Blender viewport whatever shape the browser is. */
 const HFOV = 65.2 * Math.PI / 180;
 
-/* only used before scene.glb finishes loading */
+/* only used before scene.glb finishes loading — mirrors the f1 camera aim */
 const CAM_HOME_POS = new THREE.Vector3(-26, 1.6, 7.5);
-const CAM_HOME_TGT = new THREE.Vector3(-19, 1.7, 7.5);
+const CAM_HOME_TGT = new THREE.Vector3(-17, 2.8, 7.5);
 
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -48,6 +48,12 @@ sun.shadow.camera.top = 42;
 sun.shadow.camera.bottom = -42;
 sun.shadow.bias = -0.0008;
 scene.add(sun);
+
+/* soft fill from the west so faces turned away from the sun (the gate's
+ * approach side, the booths, the guard) are not swallowed by shadow */
+const fill = new THREE.DirectionalLight(0xcfe0ff, 1.3);
+fill.position.set(-36, 12, 18);
+scene.add(fill);
 
 /* ground disc */
 const ground = new THREE.Mesh(
@@ -106,13 +112,15 @@ function frameAtScroll(scrollY) {
  *   bs_kind : "loc" | "scale" | "rot" | "pos"
  *   bs_win  : [frameStart, frameEnd]
  *   bs_off  : start offset for "loc";  end = static - off
- *   bs_rot  : flat [frame, value, ...] angle about glTF Y
+ *   bs_rot  : flat [frame, value, ...] angle about bs_axis (default glTF Y)
+ *   bs_axis : "X" | "Y" | "Z" — rotation axis in glTF space (rot kind only)
  *   bs_pos  : flat [frame, x, y, z, ...] for the camera + its aim target
  *   bs_hide : frame before which the node (and its subtree) is not shown
  * ------------------------------------------------------------------ */
 
 const parts = [];
 const walkers = [];              // pedestrians: driven by wall clock, not scroll
+const guards = [];               // the checkpoint guard: subtle idle, wall clock
 let ready = false;
 let camNode = null, camTgt = null;
 
@@ -132,6 +140,11 @@ function extra(node, key) {
 
 const smooth = t => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const AXES = {
+  X: new THREE.Vector3(1, 0, 0),
+  Y: Y_AXIS,
+  Z: new THREE.Vector3(0, 0, 1)
+};
 const _q = new THREE.Quaternion();
 const _v = new THREE.Vector3();
 
@@ -185,7 +198,7 @@ function applyFrame(f) {
     } else if (p.kind === 'scale') {
       p.node.scale.lerpVectors(p.startScale, p.endScale, t);
     } else {
-      _q.setFromAxisAngle(Y_AXIS, rotAt(p.keys, f));
+      _q.setFromAxisAngle(p.axis || Y_AXIS, rotAt(p.keys, f));
       p.node.quaternion.copy(p.baseQuat).multiply(_q);
     }
   }
@@ -197,9 +210,11 @@ loader.load(
   gltf => {
     const root = gltf.scene;
     const pedRoots = [];
+    const guardRoots = [];
     root.traverse(o => {
       if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
       if (o.name.startsWith('Ped_') && o.name.endsWith('_Root')) pedRoots.push(o);
+      if (o.name === 'Guard_Root') guardRoots.push(o);
       if (o.isCamera && !camNode) camNode = o;
       if (o.name === 'Cam_Walk') camNode = o;
       if (o.name === 'Cam_WalkTarget') camTgt = o;
@@ -228,6 +243,7 @@ loader.load(
       } else if (kind === 'rot') {
         p.keys = extra(o, 'bs_rot');
         if (!p.keys) return;
+        p.axis = AXES[extra(o, 'bs_axis')] || Y_AXIS;
       } else if (kind === 'scale') {
         // static scale is the grow start (0.001); everything grows to full size
         p.startScale = o.scale.clone();
@@ -258,6 +274,14 @@ loader.load(
         yaw: rt.rotation.y,
         phase: (i * 2.399) % (Math.PI * 2)                 // stagger the strides
       });
+    });
+
+    /* The checkpoint guard keeps his post: same rig shape as a walker, but no
+     * path. A slow weight-shift and a scan of the road, driven by the wall
+     * clock, so he never looks like a shop mannequin. */
+    guardRoots.forEach(rt => {
+      const g = s => rt.getObjectByName('Guard_' + s);
+      guards.push({ body: g('Body'), head: g('Head') });
     });
 
     scene.add(root);
@@ -371,6 +395,19 @@ function phaseOf(f) {
   return 'the whole society';
 }
 
+function updateGuards(t) {
+  for (const g of guards) {
+    if (g.body) {
+      g.body.rotation.x = 0.030 * Math.sin(t * 0.60);         // weight shift
+      g.body.rotation.y = 0.015 * Math.sin(t * 0.43 + 1.1);   // tiny bow
+    }
+    if (g.head) {
+      g.head.rotation.z = 0.32 * Math.sin(t * 0.37);          // scans the road
+      g.head.rotation.y = 0.10 * Math.sin(t * 0.90 + 0.5);    // small nods
+    }
+  }
+}
+
 function tick() {
   requestAnimationFrame(tick);
 
@@ -383,7 +420,7 @@ function tick() {
     scrollSmooth * (document.documentElement.scrollHeight - window.innerHeight));
   frameCur += (frameTarget - frameCur) * 0.16;
 
-  if (ready) { applyFrame(frameCur); updateWalkers(dt); }
+  if (ready) { applyFrame(frameCur); updateWalkers(dt); updateGuards(nowT / 1000); }
 
   /* the walk itself: position + aim both come out of the exported camera rig */
   if (ready && camNode && camTgt) {
