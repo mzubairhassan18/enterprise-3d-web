@@ -7,11 +7,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const F0 = 1, F1 = 1150;                 // Blender timeline (24 fps)
 
-/* The walk-through uses the 28 mm lens set on the Blender camera. On a 16:9
- * frame that is a 65.2° horizontal field of view; we hold the HORIZONTAL fov
- * constant and derive the vertical from the window, so the framing tracks the
- * Blender viewport whatever shape the browser is. */
-const HFOV = 65.2 * Math.PI / 180;
+/* The walk-through uses the 20 mm lens set on the Blender camera (widened
+ * from 28 mm — it read as zoomed-in and the gate's base fell below the
+ * frame while the aim held the sign). On a 16:9 frame that is an 83.97°
+ * horizontal field of view; we hold the HORIZONTAL fov constant and derive
+ * the vertical from the window, so the framing tracks the Blender viewport
+ * whatever shape the browser is. */
+const HFOV = 83.974 * Math.PI / 180;
 
 /* only used before scene.glb finishes loading — mirrors the f1 camera aim */
 const CAM_HOME_POS = new THREE.Vector3(-26, 1.6, 7.5);

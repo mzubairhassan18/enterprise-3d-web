@@ -226,6 +226,8 @@ with bpy.context.temp_override(window=w, area=a, region=r):   # region type 'WIN
 | Believing an EEVEE render at face value | f55 legitimately shows two blank panels filling the frame — that is the two big gate leaves, 12 % open, meeting at the centre seam (the camera is 3 units from them; ray-casts hit `Gate_ArmA/B` there). Correct, and it is the story the caption tells. Separately, two f1150 renders came back as flat "wall corner" garbage while ray-casts, `world_to_camera_view` and a re-render proved the scene fine — **re-render once to a fresh filename before debugging geometry.** |
 | `scene.node_tree` in Blender 5 | Gone — the compositor lives at `scene.compositing_node_group`; probe with `hasattr(sc, "compositing_node_group")`. (A probe call died on `sc.node_tree`; non-batch code auto-reverts, so nothing was lost.) |
 | Validating a GLB child `translation` against world coordinates | Child node `translation` is **parent-relative, then Y-up**: `Y-up(world − parent_t)`. All gate-v2 parts hang off `Gate_Root` at (−17, −7.5, 0), so expected local = `Y-up(world + (17, 7.5, 0))`. v1 of `glbped.py` failed five checks purely from this comparison. |
+| `tools.blender.*` absent from the session's tool catalog (MCP wrapper never connected) | Drive the real channel directly: write the snippet to a file and run `D:\image-agent\tmp\opencode\bpyexec.py code <file.py>` (bundled Blender python → TCP 127.0.0.1:9876). It sends `{"type":"execute_code","params":{"code":…}}` — **`code` must sit under `params`**, or the handler silently runs empty code and returns blank output. Only `_strip_bad_code` runs on this path (no `code_guard.py`), so obey §4 rules voluntarily. `bpyexec.py ping` / `shot <path.png>` map to the other commands. |
+| Expecting the `browser.*` tools to work out of the box | They return `[browser.disconnected] … desktop app` unless the session is open in the opencode **desktop app** with the experimental browser setting enabled and connected. Until then, verifying `localhost:8000` stays manual (user hard-refreshes and reports); verify the *scene* instead with EEVEE camera renders to `D:\image-agent\tmp\opencode\` + `read`. |
 
 The five addon bug fixes are already persisted on disk — do not redo them.
 
@@ -267,18 +269,42 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   lights** (`export_lights` off); `main.js` lights the scene itself with a
   DirectionalLight + HemisphereLight + a west fill `0xcfe0ff` (intensity 1.3 at
   (−36, 12, 18)), so do not rely on Blender lights for the web version.
-- **Web export lives in this directory:** `scene.glb` (~935 KB), `index.html`, `main.js`,
+- **Web export lives in this directory:** `scene.glb` (~1.6 MB — it grew from
+  ~935 KB when the baked texture PNGs were embedded), `index.html`, `main.js`,
   `style.css`. Serve it — `file://` will not fetch the GLB:
   `D:\D\blender-installed\5.2\python\bin\python.exe -m http.server 8000` →
-  `http://localhost:8000/`. Scroll maps to frames 1→1150 and is **reversible**.
-  Re-export after any scene change — **`export_cameras=True` is mandatory**, otherwise
+  `http://localhost:8000/`. Scroll maps to frames 1→1150 and is **reversible**;
+  each `.panel` is **220vh** tall (≈6 frames per wheel notch — at 100vh one
+  notch burned ~14 frames and the walk flew past too fast to watch). Re-export
+  after any scene change — **`export_cameras=True` is mandatory**, otherwise
   the `Cam_Walk` node is dropped and the walkthrough camera disappears from the page:
   `bpy.ops.export_scene.gltf(filepath="D:/blender-mco/scene.glb", export_format="GLB", export_animations=True, export_extras=True, export_cameras=True)` —
   then run `glbped.py` (`D:\image-agent\tmp\opencode\`, bundled Blender python);
   it must print `RESULT: PASS`. `package.json` (`"type": "module"`) exists so
   `node --check main.js` parses the ES-module syntax after edits.
+- **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
+  procedural PNG base-colour textures: brick = the three houses' walls, stone =
+  gate piers/booths/arch + `Mosque_Hall`, vertical slats = the opening gate
+  leaves + plaque, wood grain = doors + sign board + fence, asphalt = road +
+  roundabout ring, paving = sidewalks + cabin roofs + pier caps, shingle =
+  roofs, noise = fountain + roundabout grass (noise only, so box-projection
+  seams on curved surfaces stay invisible). UVs are **world-space box
+  projections evaluated at f1150** (every part in its final pose), so the
+  pattern continues across separately-built parts of one wall: 100 meshes get a
+  fresh UV layer (meshes made single-user first), `Mosque_MinShaft` keeps its
+  primitive cylinder unwrap. `Mosque_Wall_Cream` was split off
+  `House_Wall_Cream`, so the mosque stays stone while the houses are brick.
+  The images are packed into the .blend (sidecars at
+  `D:\image-agent\tmp\opencode\tex_*.png`) and embedded in the GLB — verify
+  with `tex_check.py` (counts `baseColorTexture` materials; expect 11 images).
+  `Gate_SignGold` was re-saturated for tone mapping: base (1.0, 0.68, 0.13),
+  emission (1.0, 0.60, 0.10) × 0.9, metallic 0.5 — ACES/AgX wash anything
+  brighter to pale white, so keep emission strength ≤ 1.
 - **The camera is authored in Blender and exported — there are no `CAM_*` orbit
-  constants left in `main.js`.** `Cam_Walk` (a 28 mm camera) plus `Cam_WalkTarget`
+  constants left in `main.js`.** `Cam_Walk` (a **20 mm** camera — widened from
+  28 mm in the texture pass: 28 mm read as zoomed-in and cut the gate's base
+  off below the viewport; `main.js` holds HFOV **83.974°** to match) plus
+  `Cam_WalkTarget`
   (a TRACK_TO empty) hold **17 position waypoints + 20 aim waypoints across
   f1→1150** (the aim gained keys in the gate-v2 rework: hold the sign high —
   `(−16.95, −7.5, 2.75)` to f32 — then drop to eye level `(−16.7, −7.5, 1.65)`

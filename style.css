@@ -55,7 +55,9 @@ body {
 main { position: relative; z-index: 2; }
 
 .panel {
-  min-height: 100vh;
+  /* 220vh per section ≈ 6 frames per wheel notch — 100vh flew through the
+     timeline far too fast to watch anything build. */
+  min-height: 220vh;
   display: flex;
   align-items: center;
   padding: 8vh 7vw;
