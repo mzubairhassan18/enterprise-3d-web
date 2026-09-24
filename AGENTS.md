@@ -224,6 +224,9 @@ with bpy.context.temp_override(window=w, area=a, region=r):   # region type 'WIN
 | Reinstalling Blender | Addon folder (and all 5 bug fixes) is wiped. Re-tick the addon and re-apply fixes. `.bak` files sit next to the patched originals. |
 | Bulk-deleting `bpy.data.actions` with `a.users == 0` | This time it only killed the 6 dead ped actions **and stale camera duplicates** — `Cam_WalkAction` was orphaned while the **live** one was `Cam_WalkAction.001`. Harmless, but always print `obj.animation_data.action.name` before a sweep: Blender happily abandons an original when a `.001` variant takes over, and a live action can look dead. |
 | Believing an EEVEE render at face value | f55 legitimately shows two blank panels filling the frame — that is the two big gate leaves, 12 % open, meeting at the centre seam (the camera is 3 units from them; ray-casts hit `Gate_ArmA/B` there). Correct, and it is the story the caption tells. Separately, two f1150 renders came back as flat "wall corner" garbage while ray-casts, `world_to_camera_view` and a re-render proved the scene fine — **re-render once to a fresh filename before debugging geometry.** |
+| Printing a literal `%` in `bpyexec.py` stdout | The harness dies with `ExecutionError: %` and the crash-undo can wipe an un-saved **non-batch** build → never print `%` in Blender-side scripts (print fractions instead), push `bpy.ops.ed.undo_push()` after a successful build and save promptly. |
+| Reading keyframes through the legacy `obj.animation_data.action.fcurves` in Blender 5 | Slotted actions hide it — it silently returns nothing → use `act = ad.action; cbag = act.layers[0].strips[0].channelbag(ad.action_slot); cbag.fcurves` (`fc.keyframe_points[i].co = (frame, value)`). |
+| Trusting the `read` tool on a PNG in `D:\image-agent\tmp\opencode\` | This session it served **wrong image bytes** even for fresh renders (one agent's whole gallery came back as garbage) → verify numerically (pixel counts, `world_to_camera_view`, bbox sweeps) or only via a `compose2.mjs` composite grid. |
 | `scene.node_tree` in Blender 5 | Gone — the compositor lives at `scene.compositing_node_group`; probe with `hasattr(sc, "compositing_node_group")`. (A probe call died on `sc.node_tree`; non-batch code auto-reverts, so nothing was lost.) |
 | Validating a GLB child `translation` against world coordinates | Child node `translation` is **parent-relative, then Y-up**: `Y-up(world − parent_t)`. All gate-v2 parts hang off `Gate_Root` at (−17, −7.5, 0), so expected local = `Y-up(world + (17, 7.5, 0))`. v1 of `glbped.py` failed five checks purely from this comparison. |
 | `tools.blender.*` absent from the session's tool catalog (MCP wrapper never connected) | Drive the real channel directly: write the snippet to a file and run `D:\image-agent\tmp\opencode\bpyexec.py code <file.py>` (bundled Blender python → TCP 127.0.0.1:9876). It sends `{"type":"execute_code","params":{"code":…}}` — **`code` must sit under `params`**, or the handler silently runs empty code and returns blank output. Only `_strip_bad_code` runs on this path (no `code_guard.py`), so obey §4 rules voluntarily. `bpyexec.py ping` / `shot <path.png>` map to the other commands. |
@@ -239,14 +242,18 @@ The five addon bug fixes are already persisted on disk — do not redo them.
 
 - Blender 5.2.1 LTS, GUI process running. Saved as **`D:\blender-mco\society.blend`**
   (the pre-society baseline is kept as `house_society.blend`). Re-save after big edits.
-- **247 objects · 86 animated · 140 carry `bs_hide`:** 14 `House_*` + 14 `House2_*` +
+- **328 objects · 161 tagged (`bs_kind`) · 221 carry `bs_hide`:** 14 `House_*` + 14 `House2_*` +
   14 `House3_*`, 39 `Fence_*`, 10 `Tree_*`, 14 `Mosque_*`, **39 `Gate_*`**,
   **15 `Guard_*`** (checkpoint-guard rig), **66 `Ped_*` = 6 articulated rigs × 11
   objects**, 4 each of `Road_`/`Round_`/`Fount_`/`Water_`, 2 `Spill_*`, 2 `Cam_*`,
-  `Sun` + `Sun_Fill`. The old default `Light`, the `Cube`, the robot and the old
+  **45 `Wall_*`** (boundary wall = root + 24 section pieces + 20 pillar pieces),
+  **21 `Apt*`** (3 roots + 18 storeys), **9 `Hosp_*`** (root + 8 parts),
+  **6 `Bank_*`** (root + 5 parts), `Sun` + `Sun_Fill`. The old default `Light`, the `Cube`, the robot and the old
   single-mesh `Ped_01..06` are gone. The two lights do not export → the GLB has
-  **245 nodes · 86 animations · 1 camera**; `glbped.py` (in
-  `D:\image-agent\tmp\opencode\`) must print `RESULT: PASS`. Only the six
+  **326 nodes · 161 animations · 1 camera** (2.07 MB); `glbped.py` (in
+  `D:\image-agent\tmp\opencode\`) must print `RESULT: PASS` — it asserts 161
+  tagged / 221 bs_hide / 22 + 25 camera waypoints and spot-checks the expansion
+  parts' `bs_win`. Only the six
   `Ped_*_Root` empties carry walker props; the gate rebuild is 45 new objects
   (10 stepped-pier pieces, 10 booth pieces, 7 barrier pieces, 3 sign pieces,
   15 guard pieces).
@@ -262,6 +269,14 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   + red tip; `Guard_Root` (−17.50, −9.75, 0.22) rotated π (faces west);
   gold "Welcome to Kashmir Town" extruded on **both** faces of the board
   (−17.25, −7.5, 4.10–5.00).
+  **Expansion district (the f1450 pass):** boundary wall on the gate plane
+  x −17 — north leg y −3.9…+18, south leg y −11.1…−32, open ends (no corner
+  returns), plinth/panel/cap sections + a pillar every 6 (pyramids on all 8,
+  gold balls on PilN1/N3/S1/S3); apartment row A/B/C at x 8…14 / 15…21 / 22…28,
+  front y −14, depth to y −23 (1-unit gaps), five storeys + parapet to z 15.6;
+  hospital x 31…39, y −14…−22.4, four storeys to z 12.8 with red crosses on the
+  north + south faces and the roof; bank x 24…30, y −1…5, three storeys with a
+  four-column portico + pediment on the south face (steps to y −2.5).
 - Two lights exist for viewport/render previews: **`Sun`** (energy 3.0) and
   **`Sun_Fill`** (energy 1.65 = 55 %, rotation (0, −65°, 20°), `use_shadow=False` —
   a beam from the SW so the gate's west faces read). The original default `Light`,
@@ -269,11 +284,15 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   lights** (`export_lights` off); `main.js` lights the scene itself with a
   DirectionalLight + HemisphereLight + a west fill `0xcfe0ff` (intensity 1.3 at
   (−36, 12, 18)), so do not rely on Blender lights for the web version.
-- **Web export lives in this directory:** `scene.glb` (~1.6 MB — it grew from
-  ~935 KB when the baked texture PNGs were embedded), `index.html`, `main.js`,
+- **Web export lives in this directory:** `scene.glb` (~2.1 MB — it grew from
+  ~935 KB when the baked texture PNGs were embedded, and again with the
+  expansion district), `index.html`, `main.js`,
   `style.css`. Serve it — `file://` will not fetch the GLB:
   `D:\D\blender-installed\5.2\python\bin\python.exe -m http.server 8000` →
-  `http://localhost:8000/`. Scroll maps to frames 1→1150 and is **reversible**;
+  `http://localhost:8000/`. Scroll maps to frames 1→1450 (**11 panels**, tiled
+  `(1,60) (60,150) (150,390) (390,560) (560,700) (700,860) (860,960) (960,1040)
+  (1040,1180) (1180,1330) (1330,1450)` via `data-f0/data-f1`, with `F1 = 1450`
+  in `main.js`) and is **reversible**;
   each `.panel` is **220vh** tall (≈6 frames per wheel notch — at 100vh one
   notch burned ~14 frames and the walk flew past too fast to watch). Re-export
   after any scene change — **`export_cameras=True` is mandatory**, otherwise
@@ -289,13 +308,22 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   v 0.32..0.475, fine grain against banding) as `scene.background`, fog matches
   `SKY_HORIZON`, the ground disc carries a tiled canvas grass speckle, and two
   InstancedMeshes scatter ~11k crossed-quad tufts + ~300 bush clumps rejected
-  out of `soilIsFree()` (road corridor, roundabout, house yards, mosque).
+  out of `soilIsFree()` (road corridor, roundabout, house yards, mosque, the two
+  wall legs at x −18…−16, the apartment row x 7.5…28.5 / z 13.5…23.5, hospital
+  x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new building
+  boxes are in glTF space, z = −y).
   Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
   hero caption pins to the top of panel 1 and the last caption to the bottom.
-  Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot3.mjs`
-  (watermarked stations + JSON diagnostics) and read its output through
-  `compose.mjs` (one grid image): the image `read` tool mis-serves individual
-  PNG paths in that directory, so trust files only via their in-image stamp.
+  Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot4.mjs`
+  (frame-targeted stations: it computes scrollY from the same section math as
+  `frameAtScroll`, then polls until `scrollSmooth` settles — plain scroll
+  jumps read stale HUD frames because the scroll eases; `webshot3.mjs` is the
+  older fraction-based variant) and read its output through
+  `compose2.mjs` (`node compose2.mjs out.png "Label=file.png" ...`, a general
+  grid builder; `compose.mjs` has the old four files hardcoded): the image
+  `read` tool mis-serves individual
+  PNG paths in that directory, so trust files only via their in-image stamp
+  or a composite grid.
 - **The site has a design layer now, governed by four skill repos cloned into
   `skills/`** (`taste-skill`, `impeccable`, `emilkowalski-skills`,
   `creative-director-skill` — gitignored, re-clone if missing; follow each
@@ -309,6 +337,11 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   Fraunces, Geist, Plus Jakarta Sans, Space Grotesk). After any UI edit run
   `skills\impeccable\skill\scripts\impeccable.cmd detect --json index.html
   style.css main.js` — it must print `[]`.
+  All 11 captions (plus `<title>` / meta description) are real-estate copy
+  written with `creative-director-skill`: hero title ≤ 8 words, hero subtext
+  ≤ 20 words, benefit-led headings grounded in what is on screen at that frame
+  range, and `phaseOf()` HUD labels kept consistent with them (see the
+  web-export bullet for the panel tiling).
 - **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
   procedural PNG base-colour textures: brick = the three houses' walls, stone =
   gate piers/booths/arch + `Mosque_Hall`, vertical slats = the opening gate
@@ -316,7 +349,8 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   roundabout ring, paving = sidewalks + cabin roofs + pier caps, shingle =
   roofs, noise = fountain + roundabout grass (noise only, so box-projection
   seams on curved surfaces stay invisible). UVs are **world-space box
-  projections evaluated at f1150** (every part in its final pose), so the
+  projections evaluated at f1150** (the town's final pose at bake time; the
+  expansion parts use solid-colour materials and no baked textures), so the
   pattern continues across separately-built parts of one wall: 100 meshes get a
   fresh UV layer (meshes made single-user first), `Mosque_MinShaft` keeps its
   primitive cylinder unwrap. `Mosque_Wall_Cream` was split off
@@ -332,24 +366,34 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   28 mm in the texture pass: 28 mm read as zoomed-in and cut the gate's base
   off below the viewport; `main.js` holds HFOV **83.974°** to match) plus
   `Cam_WalkTarget`
-  (a TRACK_TO empty) hold **17 position waypoints + 20 aim waypoints across
-  f1→1150** (the aim gained keys in the gate-v2 rework: hold the sign high —
+  (a TRACK_TO empty) hold **22 position waypoints + 25 aim waypoints across
+  f1→1450** (the aim gained keys in the gate-v2 rework: hold the sign high —
   `(−16.95, −7.5, 2.75)` to f32 — then drop to eye level `(−16.7, −7.5, 1.65)`
   at f45 for the guard+barrier beat, `(−16.5, −7.5, 1.7)` at f60, glance east
   `(−12, −7.5, 1.75)` at f75; `bs_pos` on `Cam_WalkTarget` was re-derived to
-  20 waypoints): start
+  20 waypoints, then to 25 after the f1450 rework): start
   (−26, −7.5, 1.6) eye height on the road outside the gate → through the gate →
   glance south at house3 (f150) → north at house1 (f300) → east along the road →
   stop at the roundabout entrance `f960 (9.5, −9.8)` still facing the waterfall →
   step back to the south kerb `(7, −10.25)` and look up at the minaret
   (f1000, aim `(14, 1, 8)`) → settle on the mosque front (f1040, aim
-  `(16, 2, 5.75)`, position held — only the aim pans) → crane to the bird's eye
-  `(0, −32, 34)` aiming `(−1, −4, 0)` at f1150.
+  `(16, 2, 5.75)`, position held — only the aim pans) → **the expansion leg**
+  (f1120 `(7, −19, 2)`, f1180 `(7, −27, 2)` south down x 7; f1250 `(17, −27, 2)`
+  east along y −27 past the apartment backs; f1330 `(29.8, −26, 2.2)` held to
+  f1360) while the aim swings apt south faces (f1190 `(17, −23, 6)`) →
+  hospital cross (f1270 `(35, −22.4, 7)`) → bank portico (f1340 `(27, −2.5, 6)`,
+  held to f1370) → crane to the bird's eye
+  **(12.5, −48, 51) aiming (11, −6, 0) at f1450** — same view axis as the old
+  `(0, −32, 34)` / `(−1, −4, 0)` finale (tilt 50.51°, azimuth −2.05°), scaled
+  ~1.5× along that axis with the aim shifted east so the expansion district
+  fits too (18/18 landmarks in frame, worst margin 0.20). The roundabout disc
+  stays occluded from the south by the 15.6-tall apartment blocks — it already
+  was in the old finale, so not a regression.
   Both are tagged `bs_kind='pos'` with a flat `bs_pos` key list, and `main.js`
   copies their translation into its own camera every frame. To retime or reroute
   the walk, move those keys in Blender, re-derive `bs_pos` (see the axis rule
   below) and re-export.
-- **Full animation range 1–1150 @ 24 fps. Press Space to play.**
+- **Full animation range 1–1450 @ 24 fps. Press Space to play.**
   - the original house's animation was shifted **+149 frames**, so its windows are now
     `House_*` 150→378 — walls `150→167`, door slide `187→205`, roof `199→228`
     (drops from +Z), hinge swing `237→297` (open, hold, close), fence pickets
@@ -370,7 +414,16 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   - roundabout `f700→790`, fountain basin `f750→830`, water `f800→870`,
     spill curtain `f840→910`
   - mosque root `f860→990`, minaret `f940→1070`
-  - camera walk `f1→1150` (see the camera bullet above)
+  - boundary wall `f18→80` — segments sweep outward from the gate (north sections
+    start 18/33/48/63, south 20/35/50/65, 15-frame rises), each section's pillar
+    rises in its last 10 frames; `Wall_Root bs_hide=18`
+  - apartments A `f1080→1160`, B `f1110→1190`, C `f1140→1220` — the five storeys
+    rise floor by floor (13-frame stagger, 15-frame rise), roof lands last;
+    roots `bs_hide` 1080/1110/1140
+  - hospital `f1180→1270` (storeys step 13/15, facade + north + roof crosses
+    `1245→1260` land last), bank `f1230→1320` (portico `1269→1284`, roof
+    `1282→1297`); roots `bs_hide` 1180/1230
+  - camera walk `f1→1450` (see the camera bullet above)
   - **All parts keyframe scale from `TINY=(0.001,)` → `ONE`, origin at the part's base**
     so growth reads as rising from the ground. Fence rails grow along their length
     because their origin sits at one end.
@@ -382,21 +435,21 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   hands + legs → shoes. `main.js` finds the guard's body/head with `getObjectByName`,
   so nesting depth does not matter.
 - Select `House_Root` to move the house, `Tree_*_Canopy` to inspect foliage growth.
-- **Frame the viewport at ~f1150** (bird's eye, everything final) or at a section's
+- **Frame the viewport at ~f1450** (bird's eye, everything final) or at a section's
   *last* frame — never at f1, or `view_all` zooms out to include exploded start poses.
 - Blender does **not** honour `bs_hide` (it is a `main.js` concept only), so scrubbing
   the timeline in Blender always shows every part, including the scattered start poses.
 
 ### The `bs_*` build metadata (required by `main.js`)
 
-Scroll-driven building does **not** use the exported animation clips (85 of them exist
+Scroll-driven building does **not** use the exported animation clips (161 of them exist
 but per-object clips can desync). Instead every animated object carries custom props,
 which glTF writes into `node.extras`:
 
 | prop | meaning |
 |---|---|
 | `bs_kind` | `"loc"` \| `"scale"` \| `"rot"` \| `"pos"` (camera / aim waypoints) |
-| `bs_win` | `(f_start, f_end)` — its window on the **1–1150** timeline |
+| `bs_win` | `(f_start, f_end)` — its window on the **1–1450** timeline |
 | `bs_off` | start offset for `loc` parts, **stored in glTF Y-up**: Blender `(x,y,z)` → `(x, z, -y)`; `end = static − bs_off` |
 | `bs_rot` | flat `(f, val, f, val, …)` key list, angle about Blender **Z** = glTF **Y** |
 | `bs_axis` | `"X"` \| `"Z"` — rotation axis for `bs_kind="rot"` when it is **not** glTF Y (the default, so `main.js` needs no axis map for the common case). Only `Gate_BarHinge` carries `"X"`: +π/2 about X raises the boom in Blender *and* glTF. Extras export **verbatim** — no axis conversion applies to an angle (only to `bs_off`/`bs_pos`). |
