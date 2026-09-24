@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
  * Scene / renderer
  * ------------------------------------------------------------------ */
 
-const F0 = 1, F1 = 1150;                 // Blender timeline (24 fps)
+const F0 = 1, F1 = 1450;                 // Blender timeline (24 fps)
 
 /* The walk-through uses the 20 mm lens set on the Blender camera (widened
  * from 28 mm — it read as zoomed-in and the gate's base fell below the
@@ -222,6 +222,11 @@ function soilIsFree(x, z) {
   if (x > 2 && x < 8 && z > -4 && z < 3.4) return false;          // house 2 yard
   if (x > -3.5 && x < 3.5 && z > 11.5 && z < 18) return false;    // house 3 yard
   if (x > 11.5 && x < 20.5 && z > -5.5 && z < 1.5) return false;  // mosque hall
+  if (x > -18 && x < -16 && z > -18 && z < 3.4) return false;    // boundary wall, north leg
+  if (x > -18 && x < -16 && z > 11.4 && z < 32) return false;   // boundary wall, south leg
+  if (x > 7.5 && x < 28.5 && z > 13.5 && z < 23.5) return false; // apartment row
+  if (x > 30.5 && x < 39.5 && z > 13.5 && z < 22.5) return false; // hospital
+  if (x > 23.5 && x < 30.5 && z > -5.5 && z < 1.5) return false;  // bank
   return true;
 }
 
@@ -673,6 +678,8 @@ function phaseOf(f) {
   if (f < 790) return 'the roundabout';
   if (f < 910) return 'the waterfall';
   if (f < 1070) return 'the mosque';
+  if (f < 1180) return 'past the roundabout';
+  if (f < 1330) return 'the new quarter';
   return 'the whole society';
 }
 
