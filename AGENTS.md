@@ -282,6 +282,20 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   then run `glbped.py` (`D:\image-agent\tmp\opencode\`, bundled Blender python);
   it must print `RESULT: PASS`. `package.json` (`"type": "module"`) exists so
   `node --check main.js` parses the ES-module syntax after edits.
+- **The environment (sky + grass) is website-side, painted in `main.js`; the GLB
+  is untouched.** glTF cannot carry Blender's world shader, and the ground disc
+  was always a JS object, so both live here: `makeSky()` draws an equirect
+  canvas (blue gradient that reaches almost the horizon, cirrus + cumulus in
+  v 0.32..0.475, fine grain against banding) as `scene.background`, fog matches
+  `SKY_HORIZON`, the ground disc carries a tiled canvas grass speckle, and two
+  InstancedMeshes scatter ~11k crossed-quad tufts + ~300 bush clumps rejected
+  out of `soilIsFree()` (road corridor, roundabout, house yards, mosque).
+  Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
+  hero caption pins to the top of panel 1 and the last caption to the bottom.
+  Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot3.mjs`
+  (watermarked stations + JSON diagnostics) and read its output through
+  `compose.mjs` (one grid image): the image `read` tool mis-serves individual
+  PNG paths in that directory, so trust files only via their in-image stamp.
 - **The site has a design layer now, governed by four skill repos cloned into
   `skills/`** (`taste-skill`, `impeccable`, `emilkowalski-skills`,
   `creative-director-skill` — gitignored, re-clone if missing; follow each

@@ -30,12 +30,121 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+
+/* ------------------------------------------------------------------ *
+ * Sky + grassy ground.
+ *
+ * Deliberately built on the website side: glTF cannot carry Blender's
+ * world shader (a skybox would never survive the export), and the
+ * ground disc has always been a main.js object rather than part of
+ * scene.glb. Painting both here keeps the validated GLB untouched.
+ * ------------------------------------------------------------------ */
+
+const SKY_HORIZON = '#e6eef2';       // fog must match this or the horizon shows a seam
+
+/* deterministic RNG so sky and scatter are identical on every load */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function canvasTexture(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/* Equirectangular day sky: vertical gradient, high cirrus streaks and
+ * soft cumulus clusters in a band above the horizon. Every cloud blob is
+ * drawn three times (x-w, x, x+w) so clusters wrap seamlessly across the
+ * texture's u seam. */
+function makeSky() {
+  const tex = canvasTexture(2048, 1024, (g, w, h) => {
+    const grad = g.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0.00, '#2f6fb5');            // zenith: ACES desaturates
+    grad.addColorStop(0.26, '#4a8ccd');            // blues, so paint them
+    grad.addColorStop(0.42, '#6fa9da');            // richer than the target.
+    grad.addColorStop(0.475, '#9cc6e6');           // The walk looks level or
+    grad.addColorStop(0.495, '#d3e6f0');           // down, so blue has to
+    grad.addColorStop(0.50, SKY_HORIZON);          // reach almost the horizon:
+    grad.addColorStop(0.53, '#dfeae4');            // ground fog does the
+    grad.addColorStop(0.78, '#cbdacb');            // atmospheric blend.
+    grad.addColorStop(1.00, '#b7c8bb');            // nadir, hidden under the ground
+    g.fillStyle = grad;
+    g.fillRect(0, 0, w, h);
+
+    const rnd = mulberry32(20260924);
+    const blob = (x, y, r, col, a) => {
+      for (const off of [-w, 0, w]) {
+        const rg = g.createRadialGradient(x + off, y, 0, x + off, y, r);
+        rg.addColorStop(0, `rgba(${col},${a})`);
+        rg.addColorStop(1, `rgba(${col},0)`);
+        g.fillStyle = rg;
+        g.beginPath();
+        g.arc(x + off, y, r, 0, Math.PI * 2);
+        g.fill();
+      }
+    };
+
+    /* cirrus: thin, high, faint (kept low: eye level only sees v 0.35..0.5) */
+    for (let i = 0; i < 10; i++) {
+      const cx = rnd() * w;
+      const cy = h * (0.315 + rnd() * 0.06);
+      const len = 140 + rnd() * 320;
+      const th = 6 + rnd() * 10;
+      const a = 0.09 + rnd() * 0.09;
+      for (const off of [-w, 0, w]) {
+        g.fillStyle = `rgba(255,255,255,${a})`;
+        g.beginPath();
+        g.ellipse(cx + off, cy, len, th, 0, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+
+    /* cumulus: white puffs, then grey bellies tucked underneath. The band
+     * sits v 0.32..0.475, just above the horizon, where the eye-level walk
+     * actually looks; opacity is high because ACES + haze eat low alphas. */
+    for (let i = 0; i < 24; i++) {
+      const cx = rnd() * w;
+      const cy = h * (0.32 + rnd() * 0.155);
+      const spread = 110 + rnd() * 170;
+      const puffs = 7 + Math.floor(rnd() * 8);
+      for (let p = 0; p < puffs; p++) {
+        blob(cx + (rnd() - 0.5) * spread * 1.6,
+             cy + (rnd() - 0.5) * spread * 0.55,
+             24 + rnd() * spread * 0.6, '255,255,255', 0.24 + rnd() * 0.26);
+      }
+      for (let p = 0; p < puffs; p++) {
+        blob(cx + (rnd() - 0.5) * spread * 1.5,
+             cy + spread * 0.30 + (rnd() - 0.5) * spread * 0.34,
+             30 + rnd() * spread * 0.5, '150,166,188', 0.14 + rnd() * 0.10);
+      }
+    }
+
+    /* fine grain: a smooth 8-bit gradient otherwise shows faint crosshatch
+       banding once ACES has stretched it in the browser */
+    for (let i = 0; i < 90000; i++) {
+      g.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.05)';
+      g.fillRect(rnd() * w, rnd() * h, 2, 2);
+    }
+  });
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0b0f14);
-scene.fog = new THREE.Fog(0x0b0f14, 55, 220);
+scene.background = makeSky();
+scene.fog = new THREE.Fog(SKY_HORIZON, 60, 240);
 
 const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 500);
 
@@ -62,15 +171,166 @@ const fill = new THREE.DirectionalLight(0xcfe0ff, 1.3);
 fill.position.set(-36, 12, 18);
 scene.add(fill);
 
-/* ground disc */
+/* ------------------------------------------------------------------ *
+ * Ground + scattered greenery (glTF / Y-up space).
+ * The disc gets a tiled canvas grass speckle, then two InstancedMeshes
+ * lay down the small stuff: tiny crossed-quad grass tufts and low bush
+ * clumps. Slots are rejected over the road corridor, the roundabout
+ * and the house/mosque yards so nothing ever grows through the model.
+ * ------------------------------------------------------------------ */
+
+const grassTex = canvasTexture(512, 512, (g, w, h) => {
+  g.fillStyle = '#57743d';
+  g.fillRect(0, 0, w, h);
+  const rnd = mulberry32(4711);
+  /* soft patches of shade and sun so the tiling never reads as flat */
+  for (let i = 0; i < 30; i++) {
+    const x = rnd() * w, y = rnd() * h, r = 40 + rnd() * 120;
+    const rg = g.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, rnd() > 0.5 ? 'rgba(126,152,79,.10)' : 'rgba(58,82,42,.12)');
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = rg;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  /* blade speckle: thousands of 1-3 px nicks in four greens */
+  const tones = ['#466130', '#698a4a', '#7b9650', '#8f9a52'];
+  for (let i = 0; i < 14000; i++) {
+    g.fillStyle = tones[(rnd() * tones.length) | 0];
+    const bw = 1 + ((rnd() * 2.6) | 0);
+    g.fillRect(rnd() * w, rnd() * h, bw, bw + ((rnd() * 2) | 0));
+  }
+});
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+grassTex.repeat.set(36, 36);
+grassTex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(90, 64),
-  new THREE.MeshStandardMaterial({ color: 0x1c2a20, roughness: 1, metalness: 0 })
+  new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1, metalness: 0 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.01;
 ground.receiveShadow = true;
 scene.add(ground);
+
+/* exclusion zones in glTF space: road + both sidewalks (z 4..11),
+ * roundabout island at (16, 7.5), the three house yards, the mosque */
+function soilIsFree(x, z) {
+  if (x > -28 && x < 11.5 && z > 3.6 && z < 11.4) return false;   // road corridor
+  if (Math.hypot(x - 16, z - 7.5) < 6.1) return false;            // roundabout
+  if (x > -8.5 && x < 1.5 && z > -4 && z < 3.4) return false;     // house 1 yard
+  if (x > 2 && x < 8 && z > -4 && z < 3.4) return false;          // house 2 yard
+  if (x > -3.5 && x < 3.5 && z > 11.5 && z < 18) return false;    // house 3 yard
+  if (x > 11.5 && x < 20.5 && z > -5.5 && z < 1.5) return false;  // mosque hall
+  return true;
+}
+
+function scatterSlots(count, tries, seed) {
+  const rnd = mulberry32(seed);
+  const slots = [];
+  for (let i = 0; i < tries && slots.length < count; i++) {
+    const a = rnd() * Math.PI * 2;
+    const r = Math.sqrt(rnd()) * 87;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (soilIsFree(x, z)) slots.push([x, z, rnd()]);
+  }
+  return { slots, rnd };
+}
+
+/* crossed-quad tuft: two vertical planes, blades alpha-cut from a
+ * canvas, so each instance reads as a small clump of grass */
+const tuftGeo = (() => {
+  const w = 0.22, h = 0.2;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute([
+    -w / 2, 0, 0, w / 2, 0, 0, w / 2, h, 0, -w / 2, h, 0,
+    0, 0, -w / 2, 0, 0, w / 2, 0, h, w / 2, 0, h, -w / 2
+  ], 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute([
+    0, 0, 1, 0, 1, 1, 0, 1,
+    0, 0, 1, 0, 1, 1, 0, 1
+  ], 2));
+  geo.setIndex([0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
+  geo.computeVertexNormals();
+  return geo;
+})();
+
+const tuftTex = canvasTexture(64, 64, (g, w, h) => {
+  const rnd = mulberry32(1234);
+  for (let i = 0; i < 7; i++) {
+    const bx = 6 + i * 8 + (rnd() - 0.5) * 4;
+    const tx = bx + (rnd() - 0.5) * 18;
+    const ty = h * (0.16 + rnd() * 0.4);
+    const grad = g.createLinearGradient(0, h, 0, ty);
+    grad.addColorStop(0, '#33501f');
+    grad.addColorStop(1, '#8fb45c');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(bx - 2.4, h);
+    g.quadraticCurveTo(bx + (rnd() - 0.5) * 8, h * 0.5, tx, ty);
+    g.quadraticCurveTo(bx + (rnd() - 0.5) * 8 + 3, h * 0.5, bx + 2.4, h);
+    g.closePath();
+    g.fill();
+  }
+});
+
+const tufts = new THREE.InstancedMesh(
+  tuftGeo,
+  new THREE.MeshStandardMaterial({ map: tuftTex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 1 }),
+  11000
+);
+{
+  const dummy = new THREE.Object3D();
+  const col = new THREE.Color();
+  const { slots, rnd } = scatterSlots(11000, 40000, 90210);
+  for (let i = 0; i < slots.length; i++) {
+    const [x, z, q] = slots[i];
+    dummy.position.set(x, 0, z);
+    dummy.rotation.set(0, q * Math.PI, 0);
+    const s = 0.75 + rnd() * 0.7;
+    dummy.scale.set(s, s, s);
+    dummy.updateMatrix();
+    tufts.setMatrixAt(i, dummy.matrix);
+    col.setHSL(0.24 + q * 0.05, 0.35 + q * 0.2, 0.32 + q * 0.16);
+    tufts.setColorAt(i, col);
+  }
+  tufts.count = slots.length;
+  tufts.instanceMatrix.needsUpdate = true;
+  if (tufts.instanceColor) tufts.instanceColor.needsUpdate = true;
+}
+tufts.castShadow = false;
+tufts.receiveShadow = false;
+scene.add(tufts);
+
+/* low bush clumps; same seed as the tufts, so every bush sits on a
+ * grass slot and reads as one planted clump */
+const bushes = new THREE.InstancedMesh(
+  new THREE.IcosahedronGeometry(0.3, 0),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: true }),
+  300
+);
+{
+  const dummy = new THREE.Object3D();
+  const col = new THREE.Color();
+  const { slots, rnd } = scatterSlots(300, 20000, 90210);
+  for (let i = 0; i < slots.length; i++) {
+    const [x, z, q] = slots[i];
+    const s = 0.55 + rnd() * 1.15;
+    dummy.position.set(x, 0.2 * s, z);
+    dummy.rotation.set(rnd() * 0.6, q * Math.PI * 2, rnd() * 0.4);
+    dummy.scale.set(s, s * (0.7 + rnd() * 0.5), s);
+    dummy.updateMatrix();
+    bushes.setMatrixAt(i, dummy.matrix);
+    col.setHSL(0.27 + q * 0.05, 0.3 + q * 0.22, 0.22 + q * 0.14);
+    bushes.setColorAt(i, col);
+  }
+  bushes.count = slots.length;
+  bushes.instanceMatrix.needsUpdate = true;
+  if (bushes.instanceColor) bushes.instanceColor.needsUpdate = true;
+}
+bushes.castShadow = true;
+bushes.receiveShadow = true;
+scene.add(bushes);
 
 /* ------------------------------------------------------------------ *
  * Scroll → frame mapping

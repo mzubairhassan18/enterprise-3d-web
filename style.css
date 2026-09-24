@@ -131,6 +131,12 @@ main { position: relative; z-index: 2; }
   width: min(720px, 62vw);
   background: linear-gradient(90deg, var(--scrim) 0%, rgba(6, 9, 13, .55) 42%, transparent 100%);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity .3s var(--ease-out);   /* exits on the caption's .3s */
+}
+.panel:has(.caption.is-in)::before {
+  opacity: 1;
+  transition: opacity .7s var(--ease-out);   /* arrives on the caption's .7s */
 }
 .panel:nth-child(even)::before {
   left: auto;
@@ -140,6 +146,12 @@ main { position: relative; z-index: 2; }
 
 .panel:nth-child(even) { justify-content: flex-end; }
 .panel:nth-child(odd)  { justify-content: flex-start; }
+
+/* A 220vh panel would centre its caption 10vh below the fold at load, and
+   the last caption would sit just past the maximum scroll. So the first
+   chapter pins its caption near the top and the last one to the bottom. */
+.panel:first-child { align-items: flex-start; padding-top: 16vh; }
+.panel:last-child  { align-items: flex-end; }
 
 .caption {
   position: relative;
@@ -234,4 +246,20 @@ code {
     background: linear-gradient(0deg, rgba(6, 9, 13, .88) 0%, rgba(6, 9, 13, .5) 45%, transparent 100%);
   }
   .caption { max-width: none; }
+
+  /* the hero reads from the top on small screens, so its scrim flips to a
+     ceiling gradient: the floor plate belongs to the centred chapters */
+  .panel:first-child {
+    align-items: flex-start;
+    padding-top: 14vh;
+  }
+  .panel:first-child::before {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 58vh;
+    background: linear-gradient(180deg, rgba(6, 9, 13, .88) 0%, rgba(6, 9, 13, .5) 45%, transparent 100%);
+  }
 }
