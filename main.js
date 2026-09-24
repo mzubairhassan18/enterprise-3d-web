@@ -213,10 +213,11 @@ ground.position.y = -0.01;
 ground.receiveShadow = true;
 scene.add(ground);
 
-/* exclusion zones in glTF space: road + both sidewalks (z 4..11),
- * roundabout island at (16, 7.5), the three house yards, the mosque */
+/* exclusion zones in glTF space: road + both sidewalks (z 4..11) with the
+ * east extension past the roundabout, roundabout island at (16, 7.5),
+ * the three house yards, the mosque, wall legs, new buildings */
 function soilIsFree(x, z) {
-  if (x > -28 && x < 11.5 && z > 3.6 && z < 11.4) return false;   // road corridor
+  if (x > -28 && x < 41 && z > 3.6 && z < 11.4) return false;   // road corridor, incl. east extension
   if (Math.hypot(x - 16, z - 7.5) < 6.1) return false;            // roundabout
   if (x > -8.5 && x < 1.5 && z > -4 && z < 3.4) return false;     // house 1 yard
   if (x > 2 && x < 8 && z > -4 && z < 3.4) return false;          // house 2 yard
@@ -678,7 +679,7 @@ function phaseOf(f) {
   if (f < 790) return 'the roundabout';
   if (f < 910) return 'the waterfall';
   if (f < 1070) return 'the mosque';
-  if (f < 1180) return 'past the roundabout';
+  if (f < 1130) return 'past the roundabout';
   if (f < 1330) return 'the new quarter';
   return 'the whole society';
 }
