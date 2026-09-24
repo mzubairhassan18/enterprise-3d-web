@@ -282,6 +282,19 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   then run `glbped.py` (`D:\image-agent\tmp\opencode\`, bundled Blender python);
   it must print `RESULT: PASS`. `package.json` (`"type": "module"`) exists so
   `node --check main.js` parses the ES-module syntax after edits.
+- **The site has a design layer now, governed by four skill repos cloned into
+  `skills/`** (`taste-skill`, `impeccable`, `emilkowalski-skills`,
+  `creative-director-skill` — gitignored, re-clone if missing; follow each
+  `SKILL.md` for site/copy work). House rules they enforce on `index.html` +
+  `style.css`: zero em-dashes in visible copy, no numbered eyebrows, no scroll
+  cue, no cards (captions sit on alternating full-height gradient scrims via
+  `.panel::before`), one IntersectionObserver reveal (`.caption.is-in`,
+  enter .7s / exit .3s), `prefers-reduced-motion` freezes walkers/guard AND
+  the reveal, self-hosted display face `fonts/bricolage-grotesque-var.woff2`
+  (Bricolage Grotesque variable; detector-banned faces: Inter, Roboto,
+  Fraunces, Geist, Plus Jakarta Sans, Space Grotesk). After any UI edit run
+  `skills\impeccable\skill\scripts\impeccable.cmd detect --json index.html
+  style.css main.js` — it must print `[]`.
 - **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
   procedural PNG base-colour textures: brick = the three houses' walls, stone =
   gate piers/booths/arch + `Mosque_Hall`, vertical slats = the opening gate

@@ -9,3 +9,6 @@ __pycache__/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Downloaded design skills (third-party clones with their own .git; re-cloneable)
+skills/

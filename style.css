@@ -1,12 +1,58 @@
+/* Bricolage Grotesque, self-hosted (variable, latin subset): the display voice
+   of this page. Chosen over the detector's overused list (Inter, Roboto,
+   Fraunces, Geist, Plus Jakarta Sans, Space Grotesk) for personality: a face
+   assembled from slightly-off parts, like the town it captions. The system
+   stack is a fallback, never the look. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("fonts/bricolage-grotesque-var.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #0b0f14;            /* the scene's clear colour: page and world agree */
+  --ink: #e8eef5;
+  --ink-soft: rgba(232, 238, 245, .88);
+  --gold: #ffd58a;          /* one accent, taken from the gate's gold sign */
+  --scrim: rgba(6, 9, 13, .8);
+  --ease-out: cubic-bezier(.23, 1, .32, 1);  /* strong ease-out: fast start, long settle */
+  --r-chip: 4px;            /* radius scale: chips 4px, captions unboxed */
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: auto; }
+html {
+  scroll-behavior: auto;
+  scrollbar-color: rgba(232, 238, 245, .25) transparent;
+  scrollbar-width: thin;
+}
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: #0b0f14;
-  color: #e8eef5;
+  font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  caret-color: var(--gold);
+}
+
+::selection { background: var(--gold); color: var(--bg); }
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* the parts the design did not draw still belong to the design */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(232, 238, 245, .25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 213, 138, .55);
+  background-clip: padding-box;
 }
 
 #scene {
@@ -18,6 +64,7 @@ body {
   z-index: 0;
 }
 
+/* HUD: an instrument readout. Mono is the measurement voice here, not a costume. */
 #hud {
   position: fixed;
   left: 20px;
@@ -26,15 +73,21 @@ body {
   display: flex;
   gap: 14px;
   align-items: baseline;
-  font-size: 12px;
-  letter-spacing: .08em;
+  padding: 6px 10px;
+  background: rgba(6, 9, 13, .55);
+  border-radius: var(--r-chip);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  color: rgba(232, 238, 245, .62);
+  color: rgba(232, 238, 245, .72);
   pointer-events: none;
 }
 #hud-frame {
   font-variant-numeric: tabular-nums;
-  color: #ffd58a;
+  color: var(--gold);
 }
 
 #loader {
@@ -43,20 +96,22 @@ body {
   z-index: 5;
   display: grid;
   place-items: center;
-  background: #0b0f14;
-  font-size: 14px;
-  letter-spacing: .1em;
+  background: var(--bg);
+  font-size: 12px;
+  letter-spacing: .14em;
   text-transform: uppercase;
-  color: rgba(232, 238, 245, .55);
-  transition: opacity .6s ease;
+  color: rgba(232, 238, 245, .6);
+  transition: opacity .6s var(--ease-out);
 }
 #loader.done { opacity: 0; pointer-events: none; }
 
 main { position: relative; z-index: 2; }
 
 .panel {
-  /* 220vh per section ≈ 6 frames per wheel notch — 100vh flew through the
-     timeline far too fast to watch anything build. */
+  /* 220vh per chapter ≈ 6 frames per wheel notch (100vh flew past too fast).
+     Deliberately vh, not dvh: the scroll-to-frame map must not wobble when
+     the mobile URL bar collapses. */
+  position: relative;
   min-height: 220vh;
   display: flex;
   align-items: center;
@@ -64,64 +119,119 @@ main { position: relative; z-index: 2; }
   pointer-events: none;
 }
 
+/* One scrim per chapter, alternating sides: a subtitle plate poured over the
+   live render, so the interface recedes instead of stacking nine cards on
+   the scene. */
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(720px, 62vw);
+  background: linear-gradient(90deg, var(--scrim) 0%, rgba(6, 9, 13, .55) 42%, transparent 100%);
+  pointer-events: none;
+}
+.panel:nth-child(even)::before {
+  left: auto;
+  right: 0;
+  background: linear-gradient(270deg, var(--scrim) 0%, rgba(6, 9, 13, .55) 42%, transparent 100%);
+}
+
 .panel:nth-child(even) { justify-content: flex-end; }
 .panel:nth-child(odd)  { justify-content: flex-start; }
 
-.card {
-  max-width: 30rem;
-  padding: 1.6rem 1.8rem;
-  background: rgba(10, 14, 20, .72);
-  border: 1px solid rgba(255, 255, 255, .1);
-  border-radius: 14px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+.caption {
+  position: relative;
+  max-width: 36rem;
   pointer-events: auto;
-}
-
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: #ffd58a;
-  margin-bottom: .7rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 2px 18px rgba(0, 0, 0, .35);
 }
 
 h1 {
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  line-height: 1.05;
-  letter-spacing: -.02em;
-  margin-bottom: .9rem;
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: -.03em;
+  font-weight: 600;
+  text-wrap: balance;
 }
 
 h2 {
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
-  line-height: 1.1;
-  letter-spacing: -.01em;
-  margin-bottom: .7rem;
+  font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+  font-weight: 600;
+  text-wrap: balance;
+  margin-bottom: .9rem;
 }
 
-p { font-size: 15px; line-height: 1.6; color: rgba(232, 238, 245, .82); }
-p + p { margin-top: .7rem; }
+p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+h1 + p { margin-top: 1.1rem; }
 
 code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: .88em;
   background: rgba(255, 255, 255, .08);
   padding: .1em .35em;
-  border-radius: 4px;
+  border-radius: var(--r-chip);
 }
 
-.hint {
-  margin-top: 1.1rem;
-  font-size: 12px;
-  letter-spacing: .06em;
-  color: rgba(232, 238, 245, .5);
+/* The page's one authored motion: each caption resolves (rise + settle out of
+   a small blur) as its chapter enters, and retracts faster than it arrived.
+   Reveal runs only when JS is alive (.js) and only via IntersectionObserver
+   toggling .is-in, so a failed script leaves every caption readable. */
+.js .caption {
+  opacity: 0;
+  transform: translateY(20px);
+  filter: blur(6px);
+  transition:
+    opacity .3s var(--ease-out),
+    transform .3s var(--ease-out),
+    filter .3s var(--ease-out);
+}
+.js .caption.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity .7s var(--ease-out),
+    transform .7s var(--ease-out),
+    filter .7s var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .caption,
+  .js .caption.is-in {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .panel, .panel:nth-child(even), .panel:nth-child(odd) {
+  .panel,
+  .panel:nth-child(even),
+  .panel:nth-child(odd) {
     justify-content: center;
     align-items: flex-end;
     padding-bottom: 12vh;
   }
+  /* side scrims become a floor gradient so captions still read over the scene */
+  .panel::before,
+  .panel:nth-child(even)::before {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 70vh;
+    background: linear-gradient(0deg, rgba(6, 9, 13, .88) 0%, rgba(6, 9, 13, .5) 45%, transparent 100%);
+  }
+  .caption { max-width: none; }
 }

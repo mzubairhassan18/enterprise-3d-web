@@ -15,6 +15,11 @@ const F0 = 1, F1 = 1150;                 // Blender timeline (24 fps)
  * whatever shape the browser is. */
 const HFOV = 83.974 * Math.PI / 180;
 
+/* Reduced motion: the walk itself stays (it is scroll-driven, so the user
+ * drives it), but wall-clock animation - pedestrians striding, the guard's
+ * idle scan - holds still. CSS mirrors this for the caption reveal. */
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /* only used before scene.glb finishes loading — mirrors the f1 camera aim */
 const CAM_HOME_POS = new THREE.Vector3(-26, 1.6, 7.5);
 const CAM_HOME_TGT = new THREE.Vector3(-17, 2.8, 7.5);
@@ -87,6 +92,20 @@ function measure() {
   }
 }
 measure();
+
+/* ------------------------------------------------------------------ *
+ * Captions: the page's one authored motion. Each reveals when its
+ * caption enters the viewport and retracts when it leaves, so the
+ * text hand-off reverses the same way the walk does. IntersectionObserver
+ * instead of a scroll listener: batched off the scroll frame, and it
+ * reports what is actually on screen.
+ * ------------------------------------------------------------------ */
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) e.target.classList.toggle('is-in', e.isIntersecting);
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.25 });
+  for (const c of document.querySelectorAll('.caption')) io.observe(c);
+}
 
 function frameAtScroll(scrollY) {
   const probe = scrollY + window.innerHeight * 0.5;
@@ -299,7 +318,7 @@ loader.load(
   err => {
     console.error(err);
     document.getElementById('loader').textContent =
-      'could not load scene.glb — serve this folder over HTTP';
+      'could not load scene.glb: serve this folder over HTTP';
   }
 );
 
@@ -422,7 +441,10 @@ function tick() {
     scrollSmooth * (document.documentElement.scrollHeight - window.innerHeight));
   frameCur += (frameTarget - frameCur) * 0.16;
 
-  if (ready) { applyFrame(frameCur); updateWalkers(dt); updateGuards(nowT / 1000); }
+  if (ready) {
+    applyFrame(frameCur);
+    if (!reduceMotion) { updateWalkers(dt); updateGuards(nowT / 1000); }
+  }
 
   /* the walk itself: position + aim both come out of the exported camera rig */
   if (ready && camNode && camTgt) {
