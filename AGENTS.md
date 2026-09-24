@@ -224,6 +224,8 @@ with bpy.context.temp_override(window=w, area=a, region=r):   # region type 'WIN
 | Reinstalling Blender | Addon folder (and all 5 bug fixes) is wiped. Re-tick the addon and re-apply fixes. `.bak` files sit next to the patched originals. |
 | Bulk-deleting `bpy.data.actions` with `a.users == 0` | This time it only killed the 6 dead ped actions **and stale camera duplicates** — `Cam_WalkAction` was orphaned while the **live** one was `Cam_WalkAction.001`. Harmless, but always print `obj.animation_data.action.name` before a sweep: Blender happily abandons an original when a `.001` variant takes over, and a live action can look dead. |
 | Believing an EEVEE render at face value | f55 legitimately shows two blank panels filling the frame — that is the two big gate leaves, 12 % open, meeting at the centre seam (the camera is 3 units from them; ray-casts hit `Gate_ArmA/B` there). Correct, and it is the story the caption tells. Separately, two f1150 renders came back as flat "wall corner" garbage while ray-casts, `world_to_camera_view` and a re-render proved the scene fine — **re-render once to a fresh filename before debugging geometry.** |
+| Trusting a subagent's completion report | One agent reported building `Road_E*` objects, saving renders (`recon_grid*.png`) and committing `ba3e4b7` — **none of it existed** (no objects, no files, no commit); its claimed bboxes and "flush fix" were invented. Verify before building on a report: `git log --oneline`, probe the scene by object name, check files on disk. |
+| First headless load failing with `ERR_NAME_NOT_RESOLVED` (unpkg) | `index.html`'s import map pulls three.js from `unpkg.com`; a transient DNS failure kills the module → the loader never gets its `done` class, scroll does nothing, HUD frame stays at 1 (`loaderGone:false`, `hit.f:1` after 60 polls). Not a site bug — re-run that station; later stations hit the HTTP cache. `webshot4.mjs` now waits up to 45 s for `#loader.done` before scrolling. |
 | Printing a literal `%` in `bpyexec.py` stdout | The harness dies with `ExecutionError: %` and the crash-undo can wipe an un-saved **non-batch** build → never print `%` in Blender-side scripts (print fractions instead), push `bpy.ops.ed.undo_push()` after a successful build and save promptly. |
 | Reading keyframes through the legacy `obj.animation_data.action.fcurves` in Blender 5 | Slotted actions hide it — it silently returns nothing → use `act = ad.action; cbag = act.layers[0].strips[0].channelbag(ad.action_slot); cbag.fcurves` (`fc.keyframe_points[i].co = (frame, value)`). |
 | Trusting the `read` tool on a PNG in `D:\image-agent\tmp\opencode\` | This session it served **wrong image bytes** even for fresh renders (one agent's whole gallery came back as garbage) → verify numerically (pixel counts, `world_to_camera_view`, bbox sweeps) or only via a `compose2.mjs` composite grid. |
@@ -242,23 +244,28 @@ The five addon bug fixes are already persisted on disk — do not redo them.
 
 - Blender 5.2.1 LTS, GUI process running. Saved as **`D:\blender-mco\society.blend`**
   (the pre-society baseline is kept as `house_society.blend`). Re-save after big edits.
-- **328 objects · 161 tagged (`bs_kind`) · 221 carry `bs_hide`:** 14 `House_*` + 14 `House2_*` +
+- **340 objects · 173 tagged (`bs_kind`) · 233 carry `bs_hide`:** 14 `House_*` + 14 `House2_*` +
   14 `House3_*`, 39 `Fence_*`, 10 `Tree_*`, 14 `Mosque_*`, **39 `Gate_*`**,
   **15 `Guard_*`** (checkpoint-guard rig), **66 `Ped_*` = 6 articulated rigs × 11
-  objects**, 4 each of `Road_`/`Round_`/`Fount_`/`Water_`, 2 `Spill_*`, 2 `Cam_*`,
+  objects**, 4 each of `Road_`/`Round_`/`Fount_`/`Water_`, **12 `Road_E*`** (east
+  road extension: 3 asphalt + 6 sidewalk + 3 dash segments), 2 `Spill_*`, 2 `Cam_*`,
   **45 `Wall_*`** (boundary wall = root + 24 section pieces + 20 pillar pieces),
   **21 `Apt*`** (3 roots + 18 storeys), **9 `Hosp_*`** (root + 8 parts),
   **6 `Bank_*`** (root + 5 parts), `Sun` + `Sun_Fill`. The old default `Light`, the `Cube`, the robot and the old
   single-mesh `Ped_01..06` are gone. The two lights do not export → the GLB has
-  **326 nodes · 161 animations · 1 camera** (2.07 MB); `glbped.py` (in
-  `D:\image-agent\tmp\opencode\`) must print `RESULT: PASS` — it asserts 161
-  tagged / 221 bs_hide / 22 + 25 camera waypoints and spot-checks the expansion
-  parts' `bs_win`. Only the six
+  **338 nodes · 173 animations · 1 camera** (2.10 MB); `glbped.py` (in
+  `D:\image-agent\tmp\opencode\`) must print `RESULT: PASS` — it asserts 173
+  tagged / 233 bs_hide / 26 + 29 camera waypoints, the wall windows
+  (55,70)/(102,117) + `Wall_Root` hide 55, and spot-checks the expansion
+  parts' `bs_win` (incl. `Road_E1` (790,825), `Road_E3` (860,895)). Only the six
   `Ped_*_Root` empties carry walker props; the gate rebuild is 45 new objects
   (10 stepped-pier pieces, 10 booth pieces, 7 barrier pieces, 3 sign pieces,
   15 guard pieces).
 - **Layout (Blender coords):** road runs x −20…+11 at y −7.5 (asphalt y −9.5…−5.5,
-  sidewalks to −4.0 / −11.0); gate at x −17; house1 root (−3.6, 0) + fence/trees;
+  sidewalks to −4.0 / −11.0) **plus the east extension `Road_E1/E2/E3` x
+  20.75…40** (same y bands; segment tops z 0.120/0.121/0.122 and 0.06 overlaps so
+  the joints never z-fight; E1 starts at x 20.75 to tuck under the roundabout ring
+  whose asphalt reaches x 21.2 at z 0.13); gate at x −17; house1 root (−3.6, 0) + fence/trees;
   house2 root (5, 0); house3 root (0, −14.6) rotated 180° so it faces the road;
   roundabout centred (16, −7.5) r 5.2 with the fountain/waterfall on it;
   mosque hall x 13…19, y −0.5…4.5 with the minaret on the roof at (13.4, 0.3).
@@ -308,10 +315,11 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   v 0.32..0.475, fine grain against banding) as `scene.background`, fog matches
   `SKY_HORIZON`, the ground disc carries a tiled canvas grass speckle, and two
   InstancedMeshes scatter ~11k crossed-quad tufts + ~300 bush clumps rejected
-  out of `soilIsFree()` (road corridor, roundabout, house yards, mosque, the two
-  wall legs at x −18…−16, the apartment row x 7.5…28.5 / z 13.5…23.5, hospital
-  x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new building
-  boxes are in glTF space, z = −y).
+  out of `soilIsFree()` (road corridor **x < 41** — widened from 11.5 so the east
+  extension's sidewalks to x 40 stay grass-free — roundabout, house yards, mosque,
+  the two wall legs at x −18…−16, the apartment row x 7.5…28.5 / z 13.5…23.5,
+  hospital x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new
+  building boxes are in glTF space, z = −y).
   Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
   hero caption pins to the top of panel 1 and the last caption to the bottom.
   Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot4.mjs`
@@ -340,8 +348,11 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   All 11 captions (plus `<title>` / meta description) are real-estate copy
   written with `creative-director-skill`: hero title ≤ 8 words, hero subtext
   ≤ 20 words, benefit-led headings grounded in what is on screen at that frame
-  range, and `phaseOf()` HUD labels kept consistent with them (see the
-  web-export bullet for the panel tiling).
+  range, and `phaseOf()` HUD labels kept consistent with them — its "past the
+  roundabout" → "the new quarter" threshold is **f1130** (was 1180) so the HUD
+  flips inside panel 10, whose caption was retitled for the east-road leg
+  ("…glides east past the fountain and looks up at the first of three apartment
+  residences…"). See the web-export bullet for the panel tiling.
 - **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
   procedural PNG base-colour textures: brick = the three houses' walls, stone =
   gate piers/booths/arch + `Mosque_Hall`, vertical slats = the opening gate
@@ -366,23 +377,30 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   28 mm in the texture pass: 28 mm read as zoomed-in and cut the gate's base
   off below the viewport; `main.js` holds HFOV **83.974°** to match) plus
   `Cam_WalkTarget`
-  (a TRACK_TO empty) hold **22 position waypoints + 25 aim waypoints across
-  f1→1450** (the aim gained keys in the gate-v2 rework: hold the sign high —
+  (a TRACK_TO empty) hold **26 position waypoints + 29 aim waypoints across
+  f1→1450** (the aim keys at the gate: hold the sign high —
   `(−16.95, −7.5, 2.75)` to f32 — then drop to eye level `(−16.7, −7.5, 1.65)`
   at f45 for the guard+barrier beat, `(−16.5, −7.5, 1.7)` at f60, glance east
-  `(−12, −7.5, 1.75)` at f75; `bs_pos` on `Cam_WalkTarget` was re-derived to
-  20 waypoints, then to 25 after the f1450 rework): start
+  `(−12, −7.5, 1.75)` at f75; `bs_pos` on `Cam_WalkTarget` was re-derived through
+  20 → 25 waypoints, then to **29** with `Cam_Walk`'s 22 → **26** in the
+  east-road rework): start
   (−26, −7.5, 1.6) eye height on the road outside the gate → through the gate →
   glance south at house3 (f150) → north at house1 (f300) → east along the road →
   stop at the roundabout entrance `f960 (9.5, −9.8)` still facing the waterfall →
   step back to the south kerb `(7, −10.25)` and look up at the minaret
   (f1000, aim `(14, 1, 8)`) → settle on the mosque front (f1040, aim
-  `(16, 2, 5.75)`, position held — only the aim pans) → **the expansion leg**
-  (f1120 `(7, −19, 2)`, f1180 `(7, −27, 2)` south down x 7; f1250 `(17, −27, 2)`
-  east along y −27 past the apartment backs; f1330 `(29.8, −26, 2.2)` held to
-  f1360) while the aim swings apt south faces (f1190 `(17, −23, 6)`) →
-  hospital cross (f1270 `(35, −22.4, 7)`) → bank portico (f1340 `(27, −2.5, 6)`,
-  held to f1370) → crane to the bird's eye
+  `(16, 2, 5.75)` held to f1090, position held — only the aim pans) → **the
+  east-road leg (2026-09 rework: the walk stays on pavement — the old path cut
+  south across the grass at y −27)**: lift off `f1100 (9.5, −9.0, 1.75)` and
+  sweep over the roundabout's south edge `f1160 (15.8, −10.5, 3.4)` while the aim
+  swings up to the first apartment `f1150 (20.2, −14, 13.4)` → down onto the new
+  road `f1210 (20.0, −7.55, 1.95)`, aim `f1195 (25.5, −12.5, 7.5)` → dual
+  hospital+bank shot from `f1255 (20.6, −7.5, 1.97)` aiming `f1230/1255
+  (29.6, −5.5, 5)` (bank portico left, hospital ahead-right) → walk east
+  `f1300 (24.8, −7.5, 2.15)` / `f1345 (29.4, −7.5, 2.5)` aiming the hospital
+  cross `f1300/1345 (35, −14, 8)`, easing to `f1370 (34, −14, 7.5)` → crane up
+  at x 29.4 — the gap between apt C (x ≤ 28.14) and the hospital (x ≥ 30.42) —
+  `f1390 (29.4, −7.5, 22)` → swing south `f1415 (29.4, −26, 28)` → bird's eye
   **(12.5, −48, 51) aiming (11, −6, 0) at f1450** — same view axis as the old
   `(0, −32, 34)` / `(−1, −4, 0)` finale (tilt 50.51°, azimuth −2.05°), scaled
   ~1.5× along that axis with the aim shifted east so the expansion district
@@ -401,7 +419,11 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   - `House3_*` (across the road, rotated π) = house windows −90 → **60→217**
   - `House2_*` = house windows +240 → **390→567**
   - road/sidewalks/dashes `f20→140` — scale from x −20 so the road draws eastward
-    ahead of the walker
+    ahead of the walker; **east extension** `Road_E1` `f790→825`, `Road_E2`
+    `f825→860`, `Road_E3` `f860→895` — uniform TINY→ONE scale from each segment's
+    west end (y anchored to the lane/sidewalk centrelines, 0.06 overlaps + 1 mm
+    top-z steps at the joints), `bs_hide` = window start, so the road continues
+    from the roundabout's east edge to x 40 while the camera turns east
   - gate root `f10→55`; gate arms `f45→90` (∓1.4 rad, opening outward); barrier
     `Gate_BarHinge` `f36→64` (+π/2 about **X** — `bs_axis='X'`) and it is the only
     `bs_*` part that ALSO has real Blender keyframes (f36=0, f64=π/2), so scrubbing
@@ -414,9 +436,14 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   - roundabout `f700→790`, fountain basin `f750→830`, water `f800→870`,
     spill curtain `f840→910`
   - mosque root `f860→990`, minaret `f940→1070`
-  - boundary wall `f18→80` — segments sweep outward from the gate (north sections
-    start 18/33/48/63, south 20/35/50/65, 15-frame rises), each section's pillar
-    rises in its last 10 frames; `Wall_Root bs_hide=18`
+  - boundary wall **`f55→117` — retimed +37 frames in the wall pass so the wall
+    can only start once `Gate_Root` finishes growing at f55**: with the old
+    `f18→80` timing the first sections stood full-size beside the still-growing
+    piers during f18–53, which read as a visible "space" between wall and gate
+    (the user's bug report). Segments sweep outward from the gate (north sections
+    start 55/70/85/100, south 57/72/87/102, 15-frame rises), each section's
+    pillar rises in its last 10 frames; `Wall_Root bs_hide=55`. Idempotency
+    marker `sc["bs_wall_retime"] = 1`.
   - apartments A `f1080→1160`, B `f1110→1190`, C `f1140→1220` — the five storeys
     rise floor by floor (13-frame stagger, 15-frame rise), roof lands last;
     roots `bs_hide` 1080/1110/1140
@@ -442,7 +469,7 @@ The five addon bug fixes are already persisted on disk — do not redo them.
 
 ### The `bs_*` build metadata (required by `main.js`)
 
-Scroll-driven building does **not** use the exported animation clips (161 of them exist
+Scroll-driven building does **not** use the exported animation clips (173 of them exist
 but per-object clips can desync). Instead every animated object carries custom props,
 which glTF writes into `node.extras`:
 
