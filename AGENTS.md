@@ -356,9 +356,14 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   hospital x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new
   building boxes are in glTF space, z = −y).
   Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
-  hero, the bank chapter (`:nth-last-child(2)`) and the last (aerial) caption
-  all pin to the top of their panel: bottom-anchored, the bank text surfaced
-  only at f1450, after the bank scan had long passed.
+  hero and the bank chapter (`:nth-last-child(2)`) pin their caption to the
+  top of their panel (bottom-anchored, the bank text surfaced only at f1450,
+  after the bank scan had long passed). The last (aerial) panel is explicitly
+  pushed back to the bottom-LEFT — `justify-content: flex-start; align-items:
+  flex-end` plus a left scrim and `--slide: -46px`, overriding its even-child
+  right alignment — because splitting the finale panel made it the 12th (even)
+  child and the owner wants that caption low-left, where it sat before the
+  split; its copy therefore enters late, as the walk rises over the town.
   Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot4.mjs`
   (frame-targeted stations: it computes scrollY from the same section math as
   `frameAtScroll`, then polls until `scrollSmooth` settles — plain scroll
@@ -389,13 +394,18 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   Nastaliq Urdu Google subsets, unicode-range'd). After any UI edit run
   `skills\impeccable\skill\scripts\impeccable.cmd detect --json index.html
   style.css main.js` — it must print `[]`.
-  All 12 captions (plus `<title>` / meta description) are real-estate copy
-  written with `creative-director-skill`: hero title ≤ 8 words, hero subtext
-  ≤ 20 words, benefit-led headings grounded in what is on screen at that frame
-  range. **Every caption is bilingual**: English `<p>` plus a Nastaliq Urdu
+  All 12 captions (plus `<title>` / meta description) are short, plain
+  **labels** — the owner's rule: say what the building or place IS
+  (pedestrian pathway, family house, four-story hospital institute, the
+  commercial bank), never narrate the walk or the animation ("the camera
+  rises", "the walk steps back" are banned), never describe the flow of the
+  scene. One or two sentences each, straightforward and to the point, grounded
+  in what is on screen at that frame range. **Every caption is bilingual**:
+  English `<p>` plus a Nastaliq Urdu
   `<p class="ur" lang="ur" dir="rtl">` line (gold, right-aligned, line-height
-  2.3 — Nastaliq dives below the baseline). The last three headings name their
-  buildings for the look-up leg: panel 9 "Three residential apartments"
+  2.3 — Nastaliq dives below the baseline), also label-style (e.g. "جدید
+  ترین ہسپتال"). The last headings name their
+  buildings for the look-up leg: panel 9 "Residential apartments"
   (f1040–1180), panel 10 "A state-of-the-art hospital" (f1180–1330), panel 11
   "The commercial bank" (f1330–**1388** — the old combined panel was split so
   the bank text releases the moment the camera leaves the bank), panel 12 "The
