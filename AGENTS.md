@@ -10,6 +10,38 @@ cost a session to rediscover.
 
 ---
 
+## 0. Operating contract — verification is the user's job (MANDATORY)
+
+Default workflow for every task in this project, from the very first instruction:
+
+1. Probe the scene (text only, read-only) → calculate → apply in **one script**.
+2. **Export immediately**: re-write `scene.glb` (`export_cameras=True`) so the web
+   version is always current, and save the `.blend`.
+3. Report in **one text line**: what changed, which objects/frames, which `bs_*`
+   props were written.
+4. **STOP.** The user verifies on `http://localhost:8000/` (the web version) and
+   reports back what they saw.
+
+Never do, unless the user explicitly asks:
+
+- viewport screenshots, EEVEE test renders, reading PNGs
+- `webshot4.mjs` headless captures, `compose2.mjs` composite grids
+- mid-stage "does this look right?" questions
+- deferred exports ("export later at a milestone") — **export every time**; it is a
+  small task and it replaces all agent-side verification
+
+Always do (both are text-only, under 5 seconds):
+
+- the one-line change summary (so the user knows what to look for on the site)
+- run `glbped.py` after export; it must print `RESULT: PASS` — a silent export
+  failure would waste **the user's** time, not the agent's
+
+**The Blender viewport and the web version differ slightly — the web version at
+`localhost:8000` is the single source of truth for verification.** The agent never
+looks at images to verify; the user does.
+
+---
+
 ## 1. Architecture — how a prompt reaches Blender
 
 ```
