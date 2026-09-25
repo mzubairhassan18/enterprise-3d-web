@@ -332,8 +332,10 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   `(1,60) (60,150) (150,390) (390,560) (560,700) (700,860) (860,960) (960,1040)
   (1040,1180) (1180,1330) (1330,1450)` via `data-f0/data-f1`, with `F1 = 1450`
   in `main.js`) and is **reversible**;
-  each `.panel` is **220vh** tall (≈6 frames per wheel notch — at 100vh one
-  notch burned ~14 frames and the walk flew past too fast to watch). Re-export
+  each `.panel` is **340vh** tall (≈4 frames per wheel notch — 220vh gave ≈6
+  and before that 100vh burned ~14 frames a notch; the owner found those too
+  fast, so panels, the smoothing lerps (0.07/0.12) and the captions all run
+  slower now). Re-export
   after any scene change — **`export_cameras=True` is mandatory**, otherwise
   the `Cam_Walk` node is dropped and the walkthrough camera disappears from the page:
   `bpy.ops.export_scene.gltf(filepath="D:/blender-mco/scene.glb", export_format="GLB", export_animations=True, export_extras=True, export_cameras=True)` —
@@ -371,20 +373,31 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   `style.css`: zero em-dashes in visible copy, no numbered eyebrows, no scroll
   cue, no cards (captions sit on alternating full-height gradient scrims via
   `.panel::before`), one IntersectionObserver reveal (`.caption.is-in`,
-  enter .7s / exit .3s), `prefers-reduced-motion` freezes walkers/guard AND
-  the reveal, self-hosted display face `fonts/bricolage-grotesque-var.woff2`
+  enter .7s / exit .3s, **threshold 0** so `.is-in` — and the scrim — holds
+  until the caption has fully left the viewport; captions are `position:
+  sticky; top: 18vh`, pinning the text on screen until its scene's panel has
+  passed, and they **slide in sideways** via a `--slide` custom property:
+  odd panels from the left, even from the right), `prefers-reduced-motion`
+  freezes walkers/guard AND the reveal, self-hosted display face
+  `fonts/bricolage-grotesque-var.woff2`
   (Bricolage Grotesque variable; detector-banned faces: Inter, Roboto,
-  Fraunces, Geist, Plus Jakarta Sans, Space Grotesk). After any UI edit run
+  Fraunces, Geist, Plus Jakarta Sans, Space Grotesk) plus the self-hosted
+  Urdu face `fonts/noto-nastaliq-urdu-arabic.woff2` + `-latin.woff2` (Noto
+  Nastaliq Urdu Google subsets, unicode-range'd). After any UI edit run
   `skills\impeccable\skill\scripts\impeccable.cmd detect --json index.html
   style.css main.js` — it must print `[]`.
   All 11 captions (plus `<title>` / meta description) are real-estate copy
   written with `creative-director-skill`: hero title ≤ 8 words, hero subtext
   ≤ 20 words, benefit-led headings grounded in what is on screen at that frame
-  range, and `phaseOf()` HUD labels kept consistent with them — its "past the
-  roundabout" → "the new quarter" threshold is **f1130** (was 1180) so the HUD
-  flips inside panel 10, whose caption was retitled for the east-road leg
-  ("…glides east past the fountain and looks up at the first of three apartment
-  residences…"). See the web-export bullet for the panel tiling.
+  range. **Every caption is bilingual**: English `<p>` plus a Nastaliq Urdu
+  `<p class="ur" lang="ur" dir="rtl">` line (gold, right-aligned, line-height
+  2.3 — Nastaliq dives below the baseline). The last three headings name their
+  buildings for the look-up leg: panel 9 "Three residential apartments"
+  (f1040–1180), panel 10 "A state-of-the-art hospital" (f1180–1330), panel 11
+  "The commercial bank" (f1330–1450), and `phaseOf()` keeps them consistent:
+  `past the roundabout` < f1130 → `residential apartments` < f1185 →
+  `the hospital` < f1330 → `the commercial bank` < f1424 → `the whole society`.
+  See the web-export bullet for the panel tiling.
 - **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
   procedural PNG base-colour textures: brick = the three houses' walls, stone =
   gate piers/booths/arch + `Mosque_Hall`, vertical slats = the opening gate

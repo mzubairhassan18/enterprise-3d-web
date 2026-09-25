@@ -11,6 +11,26 @@
   font-display: swap;
 }
 
+/* Noto Nastaliq Urdu: the Urdu voice of the captions, self-hosted like the
+   display face. Two subsets (arabic = the Urdu script, latin for stray Latin),
+   both carrying Google's unicode-range so each renders only what it owns. */
+@font-face {
+  font-family: "Noto Nastaliq Urdu";
+  src: url("fonts/noto-nastaliq-urdu-arabic.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+@font-face {
+  font-family: "Noto Nastaliq Urdu";
+  src: url("fonts/noto-nastaliq-urdu-latin.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bg: #0b0f14;            /* the scene's clear colour: page and world agree */
   --ink: #e8eef5;
@@ -108,11 +128,12 @@ body {
 main { position: relative; z-index: 2; }
 
 .panel {
-  /* 220vh per chapter ≈ 6 frames per wheel notch (100vh flew past too fast).
+  /* 340vh per chapter ≈ 4 frames per wheel notch (was 220vh ≈ 6, which the
+     owner found too fast: the walk and its captions flew past).
      Deliberately vh, not dvh: the scroll-to-frame map must not wobble when
      the mobile URL bar collapses. */
   position: relative;
-  min-height: 220vh;
+  min-height: 340vh;
   display: flex;
   align-items: center;
   padding: 8vh 7vw;
@@ -147,14 +168,18 @@ main { position: relative; z-index: 2; }
 .panel:nth-child(even) { justify-content: flex-end; }
 .panel:nth-child(odd)  { justify-content: flex-start; }
 
-/* A 220vh panel would centre its caption 10vh below the fold at load, and
-   the last caption would sit just past the maximum scroll. So the first
-   chapter pins its caption near the top and the last one to the bottom. */
+/* A tall panel would centre its caption below the fold at load, and the last
+   caption would sit just past the maximum scroll. So the first chapter pins
+   its caption near the top and the last one to the bottom. */
 .panel:first-child { align-items: flex-start; padding-top: 16vh; }
 .panel:last-child  { align-items: flex-end; }
 
 .caption {
-  position: relative;
+  /* sticky: the caption rides at 18vh for the whole chapter, so the text for
+     the roundabout (or the hospital, or the bank) stays on screen until its
+     scene has actually been scrolled past, instead of sliding off halfway. */
+  position: sticky;
+  top: 18vh;
   max-width: 36rem;
   pointer-events: auto;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 2px 18px rgba(0, 0, 0, .35);
@@ -185,6 +210,21 @@ p {
 }
 h1 + p { margin-top: 1.1rem; }
 
+/* The Urdu line: Nastaliq, right-aligned as the script reads, in the gate's
+   gold so the second voice looks chosen rather than appended. Nastaliq needs
+   the generous line-height: its strokes dive far below the baseline. */
+p.ur {
+  font-family: "Noto Nastaliq Urdu", "Noto Sans Arabic", serif;
+  font-weight: 500;
+  font-size: clamp(1.02rem, 1.5vw, 1.24rem);
+  line-height: 2.3;
+  direction: rtl;
+  text-align: right;
+  max-width: none;
+  margin-top: .85rem;
+  color: rgba(255, 213, 138, .92);
+}
+
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: .88em;
@@ -193,19 +233,24 @@ code {
   border-radius: var(--r-chip);
 }
 
-/* The page's one authored motion: each caption resolves (rise + settle out of
-   a small blur) as its chapter enters, and retracts faster than it arrived.
+/* The page's one authored motion: each caption slides in from its own side
+   (odd chapters from the left, even from the right, matching the scrim they
+   sit on) and resolves out of a small blur as its chapter enters, then
+   retracts faster than it arrived — but only once its scene has passed,
+   because the observer keeps .is-in until the caption leaves the viewport.
    Reveal runs only when JS is alive (.js) and only via IntersectionObserver
    toggling .is-in, so a failed script leaves every caption readable. */
 .js .caption {
+  --slide: -46px;
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(var(--slide));
   filter: blur(6px);
   transition:
     opacity .3s var(--ease-out),
     transform .3s var(--ease-out),
     filter .3s var(--ease-out);
 }
+.js .panel:nth-child(even) .caption { --slide: 46px; }
 .js .caption.is-in {
   opacity: 1;
   transform: none;
@@ -245,7 +290,7 @@ code {
     height: 70vh;
     background: linear-gradient(0deg, rgba(6, 9, 13, .88) 0%, rgba(6, 9, 13, .5) 45%, transparent 100%);
   }
-  .caption { max-width: none; }
+  .caption { max-width: none; position: relative; top: auto; }  /* floor-anchored on mobile: sticky would drag it off the gradient */
 
   /* the hero reads from the top on small screens, so its scrim flips to a
      ceiling gradient: the floor plate belongs to the centred chapters */

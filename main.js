@@ -361,15 +361,17 @@ measure();
 
 /* ------------------------------------------------------------------ *
  * Captions: the page's one authored motion. Each reveals when its
- * caption enters the viewport and retracts when it leaves, so the
- * text hand-off reverses the same way the walk does. IntersectionObserver
- * instead of a scroll listener: batched off the scroll frame, and it
- * reports what is actually on screen.
+ * caption enters the viewport and stays revealed until the caption
+ * has actually left it (threshold 0: any pixel counts), so the text
+ * for a scene remains on screen until that scene has passed, exactly
+ * like the walk does. IntersectionObserver instead of a scroll
+ * listener: batched off the scroll frame, and it reports what is
+ * actually on screen.
  * ------------------------------------------------------------------ */
 if ('IntersectionObserver' in window) {
   const io = new IntersectionObserver(entries => {
     for (const e of entries) e.target.classList.toggle('is-in', e.isIntersecting);
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.25 });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0 });
   for (const c of document.querySelectorAll('.caption')) io.observe(c);
 }
 
@@ -680,7 +682,9 @@ function phaseOf(f) {
   if (f < 910) return 'the waterfall';
   if (f < 1070) return 'the mosque';
   if (f < 1130) return 'past the roundabout';
-  if (f < 1330) return 'the new quarter';
+  if (f < 1185) return 'residential apartments';
+  if (f < 1330) return 'the hospital';
+  if (f < 1424) return 'the commercial bank';
   return 'the whole society';
 }
 
@@ -704,10 +708,12 @@ function tick() {
   const dt = Math.min(0.05, Math.max(0, (nowT - lastT) / 1000));   // clamp: no jump after tab-out
   lastT = nowT;
 
-  scrollSmooth += (scrollTarget - scrollSmooth) * 0.09;
+  /* gentler chase: the walk eases after the scroll instead of snapping to it,
+     which reads slower and calmer without changing the scroll-to-frame map */
+  scrollSmooth += (scrollTarget - scrollSmooth) * 0.07;
   const frameTarget = frameAtScroll(
     scrollSmooth * (document.documentElement.scrollHeight - window.innerHeight));
-  frameCur += (frameTarget - frameCur) * 0.16;
+  frameCur += (frameTarget - frameCur) * 0.12;
 
   if (ready) {
     applyFrame(frameCur);
