@@ -168,14 +168,18 @@ main { position: relative; z-index: 2; }
 .panel:nth-child(even) { justify-content: flex-end; }
 .panel:nth-child(odd)  { justify-content: flex-start; }
 
-/* A tall panel would centre its caption below the fold at load. So the first
-   chapter pins its caption near the top — and so does the LAST one: bottom-
-   anchored, it only entered the viewport at the bird's-eye frame, so the
-   bank's text arrived after the bank had been on screen for half a minute.
-   Top-anchored it surfaces just before f1330, when the camera turns to the
-   bank, and sticky then holds it to the end of the page. */
-.panel:first-child { align-items: flex-start; padding-top: 16vh; }
-.panel:last-child  { align-items: flex-start; padding-top: 16vh; }
+/* A tall panel would centre its caption below the fold at load. So three
+   chapters anchor their caption near the top instead: the FIRST (hero), the
+   bank chapter (second-to-last) and the LAST (the aerial finale). Anchoring
+   the bank chapter at its top puts its text on screen when the camera turns
+   to the bank at f1330; bottom-anchored, it only surfaced near f1450, after
+   the bank had been gone. And splitting the old combined last panel in two
+   is what lets the bank text release as the camera leaves for the apartments,
+   with the bird's-eye copy taking over for the finale. Sticky holds each one
+   on screen until its own scene has passed. */
+.panel:first-child,
+.panel:nth-last-child(2),
+.panel:last-child { align-items: flex-start; padding-top: 16vh; }
 
 .caption {
   /* sticky: the caption rides at 18vh for the whole chapter, so the text for

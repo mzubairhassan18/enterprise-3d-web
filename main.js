@@ -684,7 +684,8 @@ function phaseOf(f) {
   if (f < 1130) return 'past the roundabout';
   if (f < 1185) return 'residential apartments';
   if (f < 1330) return 'the hospital';
-  if (f < 1424) return 'the commercial bank';
+  if (f < 1388) return 'the commercial bank';
+  if (f < 1412) return 'residential apartments';
   return 'the whole society';
 }
 

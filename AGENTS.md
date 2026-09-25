@@ -328,9 +328,10 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   expansion district), `index.html`, `main.js`,
   `style.css`. Serve it — `file://` will not fetch the GLB:
   `D:\D\blender-installed\5.2\python\bin\python.exe -m http.server 8000` →
-  `http://localhost:8000/`. Scroll maps to frames 1→1450 (**11 panels**, tiled
+  `http://localhost:8000/`. Scroll maps to frames 1→1450 (**12 panels**, tiled
   `(1,60) (60,150) (150,390) (390,560) (560,700) (700,860) (860,960) (960,1040)
-  (1040,1180) (1180,1330) (1330,1450)` via `data-f0/data-f1`, with `F1 = 1450`
+  (1040,1180) (1180,1330) (1330,1388) (1388,1450)` via `data-f0/data-f1`, with
+  `F1 = 1450`
   in `main.js`) and is **reversible**;
   each `.panel` is **340vh** tall (≈4 frames per wheel notch — 220vh gave ≈6
   and before that 100vh burned ~14 frames a notch; the owner found those too
@@ -355,9 +356,9 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   hospital x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new
   building boxes are in glTF space, z = −y).
   Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
-  hero caption AND the last (bank) caption pin to the top of their panel —
-  bottom-anchoring the last one made the bank text surface only at f1450,
-  after the bank scan had long passed.
+  hero, the bank chapter (`:nth-last-child(2)`) and the last (aerial) caption
+  all pin to the top of their panel: bottom-anchored, the bank text surfaced
+  only at f1450, after the bank scan had long passed.
   Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot4.mjs`
   (frame-targeted stations: it computes scrollY from the same section math as
   `frameAtScroll`, then polls until `scrollSmooth` settles — plain scroll
@@ -388,7 +389,7 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   Nastaliq Urdu Google subsets, unicode-range'd). After any UI edit run
   `skills\impeccable\skill\scripts\impeccable.cmd detect --json index.html
   style.css main.js` — it must print `[]`.
-  All 11 captions (plus `<title>` / meta description) are real-estate copy
+  All 12 captions (plus `<title>` / meta description) are real-estate copy
   written with `creative-director-skill`: hero title ≤ 8 words, hero subtext
   ≤ 20 words, benefit-led headings grounded in what is on screen at that frame
   range. **Every caption is bilingual**: English `<p>` plus a Nastaliq Urdu
@@ -396,9 +397,13 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   2.3 — Nastaliq dives below the baseline). The last three headings name their
   buildings for the look-up leg: panel 9 "Three residential apartments"
   (f1040–1180), panel 10 "A state-of-the-art hospital" (f1180–1330), panel 11
-  "The commercial bank" (f1330–1450), and `phaseOf()` keeps them consistent:
+  "The commercial bank" (f1330–**1388** — the old combined panel was split so
+  the bank text releases the moment the camera leaves the bank), panel 12 "The
+  master plan from above" (f1388–1450, covering the street-level apartment
+  stand + crane + bird's-eye). `phaseOf()` keeps them consistent:
   `past the roundabout` < f1130 → `residential apartments` < f1185 →
-  `the hospital` < f1330 → `the commercial bank` < f1424 → `the whole society`.
+  `the hospital` < f1330 → `the commercial bank` < f1388 → `residential
+  apartments` < f1412 → `the whole society`.
   See the web-export bullet for the panel tiling.
 - **Textures are baked in Blender, never in JS.** Eleven materials carry 256²
   procedural PNG base-colour textures: brick = the three houses' walls, stone =
