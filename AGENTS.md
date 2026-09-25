@@ -355,9 +355,9 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   hospital x 30.5…39.5 / z 13.5…22.5, bank x 23.5…30.5 / z −5.5…1.5 — the new
   building boxes are in glTF space, z = −y).
   Scrims are tied to captions via `.panel:has(.caption.is-in)::before`; the
-  hero caption pins near the top of panel 1, and the last chapter's caption
-  starts at 30vh (not the panel bottom) so the bank copy lands on screen with
-  the bank scan at f1330 instead of at the bird's-eye finale.
+  hero caption AND the last (bank) caption pin to the top of their panel —
+  bottom-anchoring the last one made the bank text surface only at f1450,
+  after the bank scan had long passed.
   Verify the page headlessly with `D:\image-agent\tmp\opencode\webshot4.mjs`
   (frame-targeted stations: it computes scrollY from the same section math as
   `frameAtScroll`, then polls until `scrollSmooth` settles — plain scroll
