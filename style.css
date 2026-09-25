@@ -168,11 +168,16 @@ main { position: relative; z-index: 2; }
 .panel:nth-child(even) { justify-content: flex-end; }
 .panel:nth-child(odd)  { justify-content: flex-start; }
 
-/* A tall panel would centre its caption below the fold at load, and the last
-   caption would sit just past the maximum scroll. So the first chapter pins
-   its caption near the top and the last one to the bottom. */
+/* A tall panel would centre its caption below the fold at load, so the first
+   chapter pins its caption near the top too (16vh), and the last chapter
+   starts its caption at 30vh (see below). */
 .panel:first-child { align-items: flex-start; padding-top: 16vh; }
-.panel:last-child  { align-items: flex-end; }
+/* The last panel's beat (the bank scan, f1330-1362) is at the START of the
+   chapter, not the end, so its caption sits at the top of the panel too:
+   bottom-anchored, it only arrived once the bird's-eye view was already on
+   screen. 30vh of padding puts first sight of it at ~f1321, just before the
+   camera swings to the bank; sticky then pins it until the page ends. */
+.panel:last-child  { align-items: flex-start; padding-top: 30vh; }
 
 .caption {
   /* sticky: the caption rides at 18vh for the whole chapter, so the text for
