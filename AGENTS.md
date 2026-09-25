@@ -287,7 +287,7 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   single-mesh `Ped_01..06` are gone. The two lights do not export → the GLB has
   **338 nodes · 173 animations · 1 camera** (2.10 MB); `glbped.py` (in
   `D:\image-agent\tmp\opencode\`) must print `RESULT: PASS` — it asserts 173
-  tagged / 233 bs_hide / 26 + 29 camera waypoints, the wall windows
+  tagged / 233 bs_hide / 28 + 31 camera waypoints, the wall windows
   (55,70)/(102,117) + `Wall_Root` hide 55, and spot-checks the expansion
   parts' `bs_win` (incl. `Road_E1` (790,825), `Road_E3` (860,895)). Only the six
   `Ped_*_Root` empties carry walker props; the gate rebuild is 45 new objects
@@ -409,30 +409,35 @@ The five addon bug fixes are already persisted on disk — do not redo them.
   28 mm in the texture pass: 28 mm read as zoomed-in and cut the gate's base
   off below the viewport; `main.js` holds HFOV **83.974°** to match) plus
   `Cam_WalkTarget`
-  (a TRACK_TO empty) hold **26 position waypoints + 29 aim waypoints across
+  (a TRACK_TO empty) hold **28 position waypoints + 31 aim waypoints across
   f1→1450** (the aim keys at the gate: hold the sign high —
   `(−16.95, −7.5, 2.75)` to f32 — then drop to eye level `(−16.7, −7.5, 1.65)`
   at f45 for the guard+barrier beat, `(−16.5, −7.5, 1.7)` at f60, glance east
   `(−12, −7.5, 1.75)` at f75; `bs_pos` on `Cam_WalkTarget` was re-derived through
-  20 → 25 waypoints, then to **29** with `Cam_Walk`'s 22 → **26** in the
-  east-road rework): start
+  20 → 25 → 29 waypoints, then to **31** with `Cam_Walk`'s 22 → 26 → **28** in the
+  look-up rework): start
   (−26, −7.5, 1.6) eye height on the road outside the gate → through the gate →
   glance south at house3 (f150) → north at house1 (f300) → east along the road →
   stop at the roundabout entrance `f960 (9.5, −9.8)` still facing the waterfall →
   step back to the south kerb `(7, −10.25)` and look up at the minaret
   (f1000, aim `(14, 1, 8)`) → settle on the mosque front (f1040, aim
   `(16, 2, 5.75)` held to f1090, position held — only the aim pans) → **the
-  east-road leg (2026-09 rework: the walk stays on pavement — the old path cut
-  south across the grass at y −27)**: lift off `f1100 (9.5, −9.0, 1.75)` and
-  sweep over the roundabout's south edge `f1160 (15.8, −10.5, 3.4)` while the aim
-  swings up to the first apartment `f1150 (20.2, −14, 13.4)` → down onto the new
-  road `f1210 (20.0, −7.55, 1.95)`, aim `f1195 (25.5, −12.5, 7.5)` → dual
-  hospital+bank shot from `f1255 (20.6, −7.5, 1.97)` aiming `f1230/1255
-  (29.6, −5.5, 5)` (bank portico left, hospital ahead-right) → walk east
-  `f1300 (24.8, −7.5, 2.15)` / `f1345 (29.4, −7.5, 2.5)` aiming the hospital
-  cross `f1300/1345 (35, −14, 8)`, easing to `f1370 (34, −14, 7.5)` → crane up
-  at x 29.4 — the gap between apt C (x ≤ 28.14) and the hospital (x ≥ 30.42) —
-  `f1390 (29.4, −7.5, 22)` → swing south `f1415 (29.4, −26, 28)` → bird's eye
+  look-up leg (2026-09 rework: five bottom-to-top building scans while the walk
+  stays on pavement)**: lift off `f1100 (9.5, −9.0, 1.75)` and sweep over the
+  roundabout's south edge `f1155 (15.8, −10.5, 3.4)` → `f1185 (18.5, −9.6, 2.5)`
+  while the aim scans the district **west-bottom → east-top** — `f1155
+  (9, −13.7, 0.6)` to `f1185 (30, −14, 15)` (apt A base up across the row toward
+  the hospital) → drop back **to the road**: aim `f1208 (30, −7.5, 1.7)`, camera
+  settles `f1208 (20.5, −7.5, 1.75)` on the roundabout asphalt → glide east to
+  **just in front of the hospital** `f1252 (35.3, −7.5, 1.75)`, hold to f1285
+  while the aim tilts `f1252 (35.3, −12.65, 0.6)` → `f1285 (35.3, −12.65, 12.8)`
+  (north face base → roof cross) → **move back west** `f1330 (30.0, −7.5, 1.75)`,
+  hold to f1362 for the **bank** scan `f1330 (27, −2.5, 0.6)` → `f1362 (27, −2.5,
+  10.5)` (portico steps → pediment) → **street-level person view** of apartment
+  C `f1388 (25, −11, 1.6)` on the east sidewalk, hold to f1412 while the aim
+  tilts `f1388 (25, −13.7, 0.5)` → `f1412 (25, −13.7, 15.6)` (facade base →
+  parapet, facade 2.7 units out) → rise through the gap between apt C
+  (x ≤ 28.14) and the hospital (x ≥ 30.42) `f1424 (29.4, −8, 26)` → bird's eye
   **(12.5, −48, 51) aiming (11, −6, 0) at f1450** — same view axis as the old
   `(0, −32, 34)` / `(−1, −4, 0)` finale (tilt 50.51°, azimuth −2.05°), scaled
   ~1.5× along that axis with the aim shifted east so the expansion district
