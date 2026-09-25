@@ -1,0 +1,7 @@
+<!-- Kashmir Town tab icon: the town's entrance gate as a gold arch on the
+     scene's own dark background (#0b0f14), accent taken from --gold, the
+     gate sign's colour. Chunky 8px strokes so it still reads at 16px. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b0f14"/>
+  <path d="M17 56V30a15 15 0 0 1 30 0v26" fill="none" stroke="#ffd58a" stroke-width="8" stroke-linecap="round"/>
+</svg>
